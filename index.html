@@ -2,16 +2,16 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
-  <title>Tidevann i Bergen</title>  <!-- Viktig for GitHub Project Pages under /Tidevanns/ -->  <base href="/Tidevanns/">  <meta name="description" content="Statisk tidevannsgraf med lokal Tidevann.xml, dag/natt-bakgrunn, nå-linje og mørkt tema." />
+  <title>Tidevann i Bergen</title>  <!-- Viktig for GitHub Project Pages under /Tidevanns/ -->  <base href="/Tidevanns/">  <meta name="description" content="Statisk tidevannsgraf med lokal Tidevann.xml, dag/natt-bakgrunn, sol/måne, nå-linje og mørkt tema." />
   <link rel="canonical" href="https://skyrre.github.io/Tidevanns/" />
   <meta name="theme-color" content="#0d1117" />
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="color-scheme" content="dark" />  <!-- App-ikoner (absolutte stier med prosjektprefiks) -->  <meta name="apple-mobile-web-app-title" content="Tidevann i Bergen">
-  <link rel="apple-touch-icon" sizes="180x180" href="/Tidevanns/icons/apple-touch-icon-180.png?v=5">
-  <link rel="icon" type="image/png" sizes="32x32" href="/Tidevanns/icons/favicon-32.png?v=5">
-  <link rel="icon" type="image/png" sizes="16x16" href="/Tidevanns/icons/favicon-16.png?v=5">
-  <link rel="manifest" href="/Tidevanns/site.webmanifest?v=5">  <style>
+  <link rel="apple-touch-icon" sizes="180x180" href="/Tidevanns/icons/apple-touch-icon-180.png?v=6">
+  <link rel="icon" type="image/png" sizes="32x32" href="/Tidevanns/icons/favicon-32.png?v=6">
+  <link rel="icon" type="image/png" sizes="16x16" href="/Tidevanns/icons/favicon-16.png?v=6">
+  <link rel="manifest" href="/Tidevanns/site.webmanifest?v=6">  <style>
     html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; background: #0d1117; }
     .tv-root {
       --bg: #0d1117; --fg: #c9d1d9; --muted: #8b949e; --accent: #58a6ff;
@@ -88,13 +88,13 @@
   <div class="tv-root">
     <header class="tv-container tv-header">
       <h1 class="tv-h1" id="title">Tidevann i Bergen</h1>
-      <div class="tv-sub" id="subtitle">Leser data fra Tidevann.xml. Dra i grafen eller bruk piltaster for å bla.</div>  <div class="tv-controls">
-    <div class="tv-row" role="group" aria-label="Tidsvalg">
-      <button class="tv-btn" data-range="1d" aria-pressed="true">24 t</button>
-      <button class="tv-btn" data-range="3d">3 døgn</button>
-      <button class="tv-btn" data-range="7d">7 døgn</button>
-    </div>
+      <div class="tv-sub" id="subtitle">Leser data fra Tidevann.xml. Dra i grafen eller bruk piltaster for å bla.</div><div class="tv-controls">
+  <div class="tv-row" role="group" aria-label="Tidsvalg">
+    <button class="tv-btn" data-range="1d" aria-pressed="true">24 t</button>
+    <button class="tv-btn" data-range="3d">3 døgn</button>
+    <button class="tv-btn" data-range="7d">7 døgn</button>
   </div>
+</div>
 </header>
 
 <main class="tv-container tv-main">
@@ -358,8 +358,8 @@
       ctx.fillStyle = getCSS('--card');
       ctx.fillRect(pad.L, pad.T, plotW, plotH);
 
-      // Dag/natt-bakgrunn
-      drawDaylightShading(ctx, pad, plotW, plotH, tMin, tMax, SITE.lat, SITE.lon, xOf);
+      // Dag/natt-bakgrunn + sol/måne
+      drawDaylightLayer(ctx, pad, plotW, plotH, tMin, tMax, SITE.lat, SITE.lon, xOf, w);
 
       // Kurvesti
       const path = new Path2D();
@@ -403,10 +403,7 @@
       // X-aksen: kun datoer ved døgnskiller (format "1. nov")
       const daysAll = dayTicks(new Date(tMin), new Date(tMax));
       const daysIn = daysAll.filter(d => d.getTime() >= tMin && d.getTime() <= tMax);
-      if (daysIn.length === 0) {
-        // fallback: vis dato for venstrekant-dagen
-        daysIn.push(startOfDay(new Date(tMin)));
-      }
+      if (daysIn.length === 0) daysIn.push(startOfDay(new Date(tMin)));
       // Gridlinjer
       ctx.beginPath();
       for (const d of daysIn) {
@@ -476,6 +473,136 @@
       }
     }
 
+    // Dag/natt-lag: lysere dagslys + sol/måne med fase
+    function drawDaylightLayer(ctx, pad, plotW, plotH, tMin, tMax, lat, lon, xOf, canvasW) {
+      const topY = pad.T;
+      const bottomY = pad.T + plotH;
+
+      const dayStartLocal = (dms) => { const d = new Date(dms); return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0); };
+      let day = dayStartLocal(tMin);
+      const endDay = dayStartLocal(tMax + 24*3600e3);
+
+      while (day <= endDay) {
+        const sun = getSunTimes(day, lat, lon);
+        const dayStart = day.getTime();
+        const dayEnd = dayStart + 24*3600e3;
+
+        // Dagslys-fyll (lysere enn før)
+        if (sun.alwaysDay) {
+          fillDay(Math.max(xOf(Math.max(dayStart, tMin)), pad.L), Math.min(xOf(Math.min(dayEnd, tMax)), pad.L + plotW));
+          // Sol ved lokalt "noon"
+          const xNoon = xOf(sun.solarNoon.getTime());
+          if (xNoon >= pad.L && xNoon <= pad.L + plotW) drawSun(ctx, xNoon, topY + 16, 7);
+        } else if (sun.alwaysNight) {
+          // Hele døgnet natt – tegner ingen dagslysfelt
+          // Måne midt på døgnet
+          const mid = dayStart + 12*3600e3;
+          const xMoon = xOf(mid);
+          if (xMoon >= pad.L && xMoon <= pad.L + plotW) {
+            const mp = moonPhaseFrac(new Date(mid));
+            drawMoon(ctx, xMoon, topY + 16, 7, mp.phase, mp.illum, mp.waxing);
+          }
+        } else if (sun.sunrise && sun.sunset) {
+          const sr = sun.sunrise.getTime();
+          const ss = sun.sunset.getTime();
+          const xs = Math.max(xOf(Math.max(sr, tMin)), pad.L);
+          const xe = Math.min(xOf(Math.min(ss, tMax)), pad.L + plotW);
+          if (xe > xs) fillDay(xs, xe);
+
+          // Sol ved solnoen
+          const xNoon = xOf(sun.solarNoon.getTime());
+          if (xNoon >= pad.L && xNoon <= pad.L + plotW) drawSun(ctx, xNoon, topY + 16, 7);
+
+          // Måne: to natt-intervaller (kveld og morgen)
+          const sunNext = getSunTimes(new Date(day.getFullYear(), day.getMonth(), day.getDate() + 1), lat, lon);
+
+          // Natt før soloppgang (forrige kveld til soloppgang i dag) – håndteres av forrige dag
+          // Natt etter solnedgang til neste soloppgang:
+          if (sunNext.sunrise) {
+            const nightStart = ss;
+            const nightEnd = sunNext.sunrise.getTime();
+            const mid = nightStart + (nightEnd - nightStart) / 2;
+            if (mid >= tMin && mid <= tMax) {
+              const xMoon = xOf(mid);
+              if (xMoon >= pad.L && xMoon <= pad.L + plotW) {
+                const mp = moonPhaseFrac(new Date(mid));
+                drawMoon(ctx, xMoon, topY + 16, 7, mp.phase, mp.illum, mp.waxing);
+              }
+            }
+          }
+        }
+
+        day = new Date(day.getFullYear(), day.getMonth(), day.getDate() + 1);
+      }
+
+      function fillDay(xs, xe) {
+        xs = Math.max(xs, pad.L); xe = Math.min(xe, pad.L + plotW);
+        if (xe <= xs) return;
+        const grad = ctx.createLinearGradient(xs, 0, xe, 0);
+        // Lysere verdier enn tidligere
+        grad.addColorStop(0.00, 'rgba(255,255,255,0.10)');
+        grad.addColorStop(0.50, 'rgba(255,255,255,0.18)');
+        grad.addColorStop(1.00, 'rgba(255,255,255,0.10)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(xs, topY, xe - xs, bottomY - topY);
+      }
+    }
+
+    // Sol-ikon (diskret)
+    function drawSun(ctx, x, y, r) {
+      ctx.save();
+      ctx.lineWidth = 1.25;
+      ctx.strokeStyle = 'rgba(255,220,120,0.9)';
+      ctx.fillStyle = 'rgba(255,220,120,0.25)';
+      // stråler
+      const rays = 8;
+      for (let i = 0; i < rays; i++) {
+        const a = (i / rays) * Math.PI * 2;
+        const x1 = x + Math.cos(a) * (r + 2);
+        const y1 = y + Math.sin(a) * (r + 2);
+        const x2 = x + Math.cos(a) * (r + 5);
+        const y2 = y + Math.sin(a) * (r + 5);
+        ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+      }
+      // skive
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.restore();
+    }
+
+    // Månefase (0=new, 0.5=full, ~) – enkel, men god nok
+    function moonPhaseFrac(date) {
+      const SYNODIC = 29.53058867;
+      const NEW_MOON_JD = 2451550.1; // 2000-01-06
+      const jd = toJulian(date);
+      const days = jd - NEW_MOON_JD;
+      let phase = (days % SYNODIC) / SYNODIC;
+      if (phase < 0) phase += 1;
+      const illum = 0.5 * (1 - Math.cos(2 * Math.PI * phase)); // 0..1
+      const waxing = phase < 0.5;
+      return { phase, illum, waxing };
+    }
+
+    // Måne-ikon: liten disk med skygge etter fase
+    function drawMoon(ctx, x, y, r, phase, illum, waxing) {
+      ctx.save();
+      const body = '#d9dde6', shadow = '#0f141a';
+      // Måneskive
+      ctx.fillStyle = body;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+
+      // Skyggelegging – enkel to-sirkler-metode for crescent/gibbous
+      // s går fra -r (full) til +r (ny)
+      const s = (1 - 2 * illum) * r;
+      ctx.fillStyle = shadow;
+      ctx.beginPath(); ctx.arc(x + (waxing ? -s : s), y, r, 0, Math.PI * 2); ctx.fill();
+
+      // Tynn outline
+      ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke();
+      ctx.restore();
+    }
+
     // Dag-ticks fra start-of-day(d0) til d1 (inklusiv)
     function startOfDay(d) { return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
     function dayTicks(d0, d1) {
@@ -488,7 +615,7 @@
       return ticks;
     }
 
-    // Time-ticks (ikke brukt lenger til etiketter, men beholdes om du vil gjeninnføre)
+    // Time-ticks (ikke brukt til etiketter lenger – beholdt for ev. senere)
     function hourTicksAdaptive(d0, d1, plotW) {
       const spanMs = d1 - d0;
       const hours = spanMs / 3600e3;
@@ -513,40 +640,7 @@
       return dt;
     }
 
-    // Dag/natt-bakgrunn basert på solopp-/nedgang
-    function drawDaylightShading(ctx, pad, plotW, plotH, tMin, tMax, lat, lon, xOf) {
-      const dayStartLocal = (dms) => { const d = new Date(dms); return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0); };
-      let day = dayStartLocal(tMin);
-      const endDay = dayStartLocal(tMax + 24*3600e3);
-      while (day <= endDay) {
-        const sun = getSunTimes(day, lat, lon);
-        const dayStart = day.getTime();
-        const dayEnd = dayStart + 24*3600e3;
-
-        if (sun.alwaysDay) {
-          fillDay(xOf(Math.max(dayStart, tMin)), xOf(Math.min(dayEnd, tMax)));
-        } else if (sun.alwaysNight) {
-          // base = natt
-        } else if (sun.sunrise && sun.sunset) {
-          const xs = Math.max(xOf(Math.max(sun.sunrise.getTime(), tMin)), pad.L);
-          const xe = Math.min(xOf(Math.min(sun.sunset.getTime(), tMax)), pad.L + plotW);
-          if (xe > xs) fillDay(xs, xe);
-        }
-        day = new Date(day.getFullYear(), day.getMonth(), day.getDate() + 1);
-      }
-      function fillDay(xs, xe) {
-        xs = Math.max(xs, pad.L); xe = Math.min(xe, pad.L + plotW);
-        if (xe <= xs) return;
-        const grad = ctx.createLinearGradient(xs, 0, xe, 0);
-        grad.addColorStop(0.00, 'rgba(255,255,255,0.03)');
-        grad.addColorStop(0.50, 'rgba(255,255,255,0.07)');
-        grad.addColorStop(1.00, 'rgba(255,255,255,0.03)');
-        ctx.fillStyle = grad;
-        ctx.fillRect(xs, pad.T, xe - xs, plotH);
-      }
-    }
-
-    // Soltider (SunCalc-lignende)
+    // Dag/natt-beregning (SunCalc-lignende)
     const RAD = Math.PI / 180;
     const J1970 = 2440588;
     const J2000 = 2451545;
@@ -644,7 +738,6 @@
     function fmtNum(n) { return (Math.round(n * 100) / 100).toLocaleString('nb-NO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
     function fmtDateTime(d) { return d.toLocaleString('nb-NO', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(',', ''); }
     function fmtTickDateShort(d) {
-      // "1. nov" uten punktum etter måned
       const s = d.toLocaleDateString('nb-NO', { day: 'numeric', month: 'short' });
       return s.replaceAll('.', '').trim();
     }
