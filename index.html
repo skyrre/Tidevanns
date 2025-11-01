@@ -1,0 +1,646 @@
+<!DOCTYPE html><html lang="nb">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="viewport-fit=cover,width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <title>Tidevann – Bergensområdet</title>  <!-- iOS "app" -->  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Tide Bergen" />
+  <meta name="theme-color" content="#0f172a" />  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #0b1220;
+      --fg: #e5e7eb;
+      --muted: #9aa0a6;
+      --card: #111827;
+      --accent: #60a5fa;
+      --accent-2: #34d399;
+      --warn: #f59e0b;
+      --danger: #ef4444;
+      --border: #1f2937;
+      --safe-top: env(safe-area-inset-top);
+      --safe-bottom: env(safe-area-inset-bottom);
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: -apple-system, system-ui, Segoe UI, Roboto, Inter, Helvetica, Arial, sans-serif;
+      background: linear-gradient(180deg, #0a0f1d 0%, #0b1220 100%);
+      color: var(--fg);
+      padding-top: calc(8px + var(--safe-top));
+      padding-bottom: calc(8px + var(--safe-bottom));
+    }
+    .app { max-width: 980px; margin: 0 auto; padding: 12px; }
+    header { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
+    .title { display: flex; align-items: center; gap: 10px; }
+    .title .logo {
+      width: 32px; height: 32px; border-radius: 8px;
+      background: linear-gradient(135deg, #2563eb, #06b6d4);
+      display: inline-flex; align-items: center; justify-content: center;
+      font-weight: 800; color: white;
+      box-shadow: 0 4px 20px rgba(37,99,235,0.4);
+    }
+    .title h1 { margin: 0; font-size: 18px; font-weight: 700; letter-spacing: 0.2px; }
+    .controls {
+      background: rgba(17,24,39,0.7);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px;
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .control { display: flex; flex-direction: column; gap: 6px; }
+    .control label { font-size: 12px; color: var(--muted); }
+    select, input, button {
+      -webkit-appearance: none; appearance: none;
+      background: #0f172a; color: var(--fg);
+      border: 1px solid var(--border); border-radius: 10px;
+      padding: 10px; font-size: 14px; outline: none;
+    }
+    button.primary {
+      background: linear-gradient(135deg, #2563eb, #06b6d4);
+      border: none; color: #fff; font-weight: 600; cursor: pointer;
+    }
+    button.ghost { background: transparent; border: 1px solid var(--border); color: var(--fg); cursor: pointer; }
+    .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .hint { font-size: 12px; color: var(--muted); }
+    .cards { margin-top: 12px; display: grid; gap: 12px; grid-template-columns: 1fr; }
+    .card { background: rgba(17,24,39,0.7); border: 1px solid var(--border); border-radius: 16px; padding: 12px; }
+    .card h2 { margin: 0 0 10px 0; font-size: 16px; }
+    .legend { display: flex; gap: 12px; align-items: center; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+    .dot.line { border-radius: 2px; height: 6px; width: 24px; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: start; }
+    .list { display: grid; gap: 8px; }
+    .item {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px; background: #0f172a;
+    }
+    .item .k { font-weight: 600; }
+    .item .v { color: var(--muted); }
+    .banner {
+      background: rgba(34,197,94,0.1);
+      border: 1px solid rgba(34,197,94,0.35);
+      color: #def7ec;
+      border-radius: 12px;
+      padding: 10px;
+      font-size: 13px;
+      display: none;
+    }
+    .banner.error { background: rgba(239,68,68,0.08); border-color: rgba(239,68,68,0.4); color: #fecaca; }
+    .footnotes { margin-top: 8px; font-size: 12px; color: var(--muted); }
+    canvas { width: 100% !important; height: 320px !important; }
+    .small { font-size: 12px; color: var(--muted); }
+    .chip { display:inline-flex; gap:6px; align-items:center; padding:4px 8px; border:1px solid var(--border); border-radius:999px; background:#0f172a; font-size:12px; color:#9aa0a6;}
+    @media (max-width: 900px) {
+      .controls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .grid2 { grid-template-columns: 1fr; }
+    }
+  </style>  <!-- Chart.js, date-adapter og zoom -->  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>  <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-adapter-date-fns/3.0.0/chartjs-adapter-date-fns.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>  <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-zoom/2.0.1/chartjs-plugin-zoom.umd.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script></head>
+<body>
+  <div class="app">
+    <header>
+      <div class="title">
+        <div class="logo">🌊</div>
+        <div>
+          <h1>Tidevann – Bergensområdet</h1>
+          <div class="hint" id="subtitle">Interaktiv graf og flo/fjære</div>
+        </div>
+      </div>
+      <div class="row">
+        <span id="netChip" class="chip" style="display:none;">Frakoblet</span>
+        <button id="btnA2HS" class="ghost" style="display:none">Installer</button>
+        <button id="btnRefresh" class="primary">Oppdater</button>
+      </div>
+    </header><section class="controls">
+  <div class="control">
+    <label for="loc">Lokasjon</label>
+    <select id="loc">
+      <option value="bergen|60.39299|5.32415">Bergen sentrum</option>
+      <option value="askoy|60.4000|5.2000">Askøy</option>
+      <option value="sotra|60.3500|5.0000">Sotra</option>
+      <option value="os|60.1833|5.4667">Os</option>
+      <option value="frekkhaug|60.5167|5.2333">Frekhaug</option>
+    </select>
+  </div>
+  <div class="control">
+    <label for="start">Startdato</label>
+    <input id="start" type="date" />
+  </div>
+  <div class="control">
+    <label for="days">Antall dager</label>
+    <select id="days">
+      <option value="7">7</option>
+      <option value="14" selected>14</option>
+      <option value="21">21</option>
+      <option value="30">30</option>
+      <option value="60">60</option>
+    </select>
+  </div>
+  <div class="control">
+    <label for="interval">Oppløsning (min)</label>
+    <select id="interval">
+      <option value="10">10</option>
+      <option value="15" selected>15</option>
+      <option value="30">30</option>
+      <option value="60">60</option>
+    </select>
+  </div>
+  <div class="control">
+    <label for="source">Datakilde</label>
+    <select id="source">
+      <option value="demo">Demo (syntetisk)</option>
+      <option value="kartverket" selected>Kartverket (Se havnivå)</option>
+    </select>
+  </div>
+  <div class="control">
+    <label for="tz">Tidssone</label>
+    <select id="tz">
+      <option value="local" selected>Lokal</option>
+      <option value="utc">UTC</option>
+    </select>
+  </div>
+</section>
+
+<div id="banner" class="banner"></div>
+
+<section class="cards">
+  <div class="card">
+    <div class="legend">
+      <span class="dot line" style="background:linear-gradient(90deg,#60a5fa,#34d399)"></span>
+      Tidehøyde (m) over tid
+      <span class="dot" style="background:#34d399"></span> Flo
+      <span class="dot" style="background:#f472b6"></span> Fjære
+    </div>
+    <canvas id="chart"></canvas>
+    <div class="footnotes small">Tips: Klyp for å zoome, dra for å panorere – eller bruk knappene under.</div>
+    <div class="row" style="margin-top:8px;">
+      <button id="btnZoomReset" class="ghost">Nullstill zoom</button>
+      <span class="hint">Periode: <span id="periodLbl"></span></span>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h2>Flo og fjære</h2>
+      <div id="hlList" class="list"></div>
+    </div>
+    <div class="card">
+      <h2>Nøkkelverdier</h2>
+      <div class="list">
+        <div class="item"><span class="k">Maks høyde</span><span class="v" id="maxVal">–</span></div>
+        <div class="item"><span class="k">Min høyde</span><span class="v" id="minVal">–</span></div>
+        <div class="item"><span class="k">Antall flo/fjære</span><span class="v" id="countVal">–</span></div>
+        <div class="item"><span class="k">Datakilde</span><span class="v" id="sourceLbl">Kartverket</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<p class="small" style="margin-top:10px;">
+  Kilde: Kartverket – Se havnivå (ved valgt datakilde).
+</p>
+  </div>  <script>
+    // --- Konfigurasjon og verktøy ---
+    const SEHAVNIVA_BASE = "https://api.sehavniva.no/tideapi.php";
+
+    function buildKartverketUrls({ lat, lon, fromISO, toISO, intervalMin }) {
+      const baseParams = {
+        lat: lat.toFixed(5),
+        lon: lon.toFixed(5),
+        fromtime: fromISO.slice(0,16),
+        totime: toISO.slice(0,16),
+        interval: String(intervalMin),
+        refcode: "CD",
+        file: "json",
+      };
+      const variants = [
+        { ...baseParams, datatype: "prediction", language: "nb" },
+        { ...baseParams, datatype: "predictions", language: "nb" },
+        { ...baseParams, datatype: "waterlevel", language: "nb" },
+        { ...baseParams, datatype: "tidetable", language: "nb" },
+        { ...baseParams, datatype: "prediction", lang: "nb" },
+        { ...baseParams, datatype: "predictions", lang: "nb" },
+        { ...baseParams, datatype: "waterlevel", lang: "nb" },
+        { ...baseParams, datatype: "tidetable", lang: "nb" },
+        { ...baseParams, datatype: "prediction", language: "nb", tzone: "utc" },
+        { ...baseParams, datatype: "predictions", language: "nb", tzone: "utc" },
+        { ...baseParams, datatype: "prediction", language: "nb", place: "Bergen" },
+        { ...baseParams, datatype: "predictions", language: "nb", place: "Bergen" },
+      ];
+      return variants.map(v => `${SEHAVNIVA_BASE}?${new URLSearchParams(v).toString()}`);
+    }
+
+    const store = {
+      set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch(_){} },
+      get(k, def) { try { const v = JSON.parse(localStorage.getItem(k)); return v ?? def; } catch(_) { return def; } },
+      remove(k) { try { localStorage.removeItem(k); } catch(_){} }
+    };
+
+    const els = {
+      start: document.getElementById("start"),
+      days: document.getElementById("days"),
+      interval: document.getElementById("interval"),
+      loc: document.getElementById("loc"),
+      source: document.getElementById("source"),
+      tz: document.getElementById("tz"),
+      subtitle: document.getElementById("subtitle"),
+      btnRefresh: document.getElementById("btnRefresh"),
+      btnZoomReset: document.getElementById("btnZoomReset"),
+      banner: document.getElementById("banner"),
+      periodLbl: document.getElementById("periodLbl"),
+      hlList: document.getElementById("hlList"),
+      maxVal: document.getElementById("maxVal"),
+      minVal: document.getElementById("minVal"),
+      countVal: document.getElementById("countVal"),
+      sourceLbl: document.getElementById("sourceLbl"),
+      btnA2HS: document.getElementById("btnA2HS"),
+      netChip: document.getElementById("netChip"),
+    };
+
+    const todayLocalISODate = () => {
+      const d = new Date();
+      const y = d.getFullYear();
+      const m = String(d.getMonth()+1).padStart(2,'0');
+      const dd = String(d.getDate()).padStart(2,'0');
+      return `${y}-${m}-${dd}`;
+    };
+    els.start.value = store.get("start", todayLocalISODate());
+    els.days.value = store.get("days", "14");
+    els.interval.value = store.get("interval", "15");
+    els.loc.value = store.get("loc", "bergen|60.39299|5.32415");
+    els.source.value = store.get("source", "kartverket");
+    els.tz.value = store.get("tz", "local");
+
+    function toISO(dt) {
+      const y = dt.getFullYear();
+      const m = String(dt.getMonth()+1).padStart(2,'0');
+      const d = String(dt.getDate()).padStart(2,'0');
+      const hh = String(dt.getHours()).padStart(2,'0');
+      const mm = String(dt.getMinutes()).padStart(2,'0');
+      return `${y}-${m}-${d}T${hh}:${mm}:00`;
+    }
+    function fmtDate(dt, tzMode) {
+      const opts = { day:'2-digit', month:'2-digit', year:'numeric' };
+      return new Intl.DateTimeFormat(undefined, {...opts, timeZone: tzMode==='utc'?'UTC':undefined}).format(dt);
+    }
+    function fmtTime(dt, tzMode) {
+      const opts = { hour:'2-digit', minute:'2-digit' };
+      return new Intl.DateTimeFormat(undefined, {...opts, timeZone: tzMode==='utc'?'UTC':undefined}).format(dt);
+    }
+    function fmtNum(n) { return `${n.toFixed(2)} m`; }
+
+    function generateDemoTide({ start, minutes, stepMin }) {
+      const pts = [];
+      const twoPi = Math.PI * 2;
+      const T_M2 = 12.4206, T_S2 = 12.0, T_K1 = 23.9345;
+      const A_M2 = 0.8, A_S2 = 0.25, A_K1 = 0.15, BASE = 0.5;
+      for (let i=0;i<=minutes;i+=stepMin) {
+        const hours = i/60;
+        const m2 = A_M2 * Math.sin(twoPi * hours / T_M2);
+        const s2 = A_S2 * Math.sin(twoPi * hours / T_S2 + 0.4);
+        const k1 = A_K1 * Math.sin(twoPi * hours / T_K1 + 1.2);
+        const h = BASE + m2 + s2 + k1;
+        pts.push({ t: new Date(start.getTime() + i*60000), h });
+      }
+      return pts;
+    }
+
+    function findHighLows(pts) {
+      const res = [];
+      for (let i=1; i<pts.length-1; i++) {
+        const prev = pts[i-1].h, cur = pts[i].h, next = pts[i+1].h;
+        if (cur > prev && cur > next) res.push({ type: 'flo', ...pts[i] });
+        if (cur < prev && cur < next) res.push({ type: 'fjære', ...pts[i] });
+      }
+      return res;
+    }
+
+    function adaptKartverketJson(json) {
+      if (Array.isArray(json?.predictions)) {
+        return json.predictions.map(e => ({ t: new Date(e.time), h: parseFloat(e.value) }))
+          .filter(p => isFinite(p.h) && !isNaN(p.t));
+      }
+      if (Array.isArray(json?.data)) {
+        return json.data.map(e => ({ t: new Date(e.time || e.timestamp), h: parseFloat(e.value) }))
+          .filter(p => isFinite(p.h) && !isNaN(p.t));
+      }
+      if (json?.tideTable?.tideTableEntries?.length) {
+        return json.tideTable.tideTableEntries.map(e => ({ t: new Date(e.time || `${e.date}T${e.time}`), h: parseFloat(e.value) }))
+          .filter(p => isFinite(p.h) && !isNaN(p.t));
+      }
+      if (Array.isArray(json)) {
+        return json.map(e => ({ t: new Date(e.time || e.timestamp || e.date), h: parseFloat(e.value) }))
+          .filter(p => isFinite(p.h) && !isNaN(p.t));
+      }
+      throw new Error("Ukjent responsformat fra Kartverket");
+    }
+
+    async function fetchKartverket({ lat, lon, start, end, stepMin }) {
+      const urls = buildKartverketUrls({ lat, lon, fromISO: toISO(start), toISO: toISO(end), intervalMin: stepMin });
+      const cacheKey = `kartverket:${urls[0]}`;
+      let lastError = null;
+
+      for (const url of urls) {
+        try {
+          const r = await fetch(url, { cache: 'no-cache' });
+          if (!r.ok) throw new Error(`API-feil (${r.status})`);
+          const json = await r.json();
+          const pts = adaptKartverketJson(json);
+          if (!pts.length) throw new Error('Tomt datasett');
+          store.set(cacheKey, { savedAt: Date.now(), url, data: json });
+          return pts;
+        } catch (err) {
+          lastError = err;
+        }
+      }
+      const cached = store.get(cacheKey);
+      if (cached?.data) {
+        try {
+          const pts = adaptKartverketJson(cached.data);
+          if (pts.length) return pts;
+        } catch(e){}
+      }
+      throw lastError || new Error('Kunne ikke hente fra Kartverket');
+    }
+
+    let chart;
+    function ensureChart() {
+      if (chart) return chart;
+      const ctx = document.getElementById("chart");
+      chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: [],
+          datasets: [
+            {
+              label: 'Tidehøyde (m)',
+              data: [],
+              borderColor: '#60a5fa',
+              backgroundColor: 'rgba(96,165,250,0.15)',
+              fill: true,
+              tension: 0.3,
+              pointRadius: 0,
+              borderWidth: 2,
+              parsing: false
+            },
+            {
+              label: 'Flo',
+              data: [],
+              type: 'scatter',
+              pointBackgroundColor: '#34d399',
+              pointBorderColor: '#34d399',
+              pointRadius: 4,
+              showLine: false,
+              parsing: false
+            },
+            {
+              label: 'Fjære',
+              data: [],
+              type: 'scatter',
+              pointBackgroundColor: '#f472b6',
+              pointBorderColor: '#f472b6',
+              pointRadius: 4,
+              showLine: false,
+              parsing: false
+            }
+          ]
+        },
+        options: {
+          scales: {
+            x: {
+              type: 'time',
+              time: { unit: 'day', tooltipFormat: 'dd.MM HH:mm' },
+              ticks: { color: '#9aa0a6' },
+              grid: { color: 'rgba(255,255,255,0.06)' }
+            },
+            y: {
+              title: { display: true, text: 'm' },
+              ticks: { color: '#9aa0a6' },
+              grid: { color: 'rgba(255,255,255,0.06)' }
+            }
+          },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: (c) => {
+                  const y = c.parsed.y;
+                  if (typeof y === 'number') return ` ${y.toFixed(2)} m`;
+                  return c.dataset.label || '';
+                }
+              }
+            },
+            zoom: {
+              zoom: {
+                wheel: { enabled: true },
+                pinch: { enabled: true },
+                mode: 'x'
+              },
+              pan: {
+                enabled: true,
+                mode: 'x'
+              }
+            }
+          },
+          interaction: { mode: 'nearest', intersect: false },
+          maintainAspectRatio: false
+        }
+      });
+      return chart;
+    }
+
+    function updateChart(pts, highs, lows) {
+      const c = ensureChart();
+      c.data.labels = pts.map(p => p.t);
+      c.data.datasets[0].data = pts.map(p => ({x: p.t, y: p.h}));
+      c.data.datasets[1].data = highs.map(p => ({ x: p.t, y: p.h }));
+      c.data.datasets[2].data = lows.map(p => ({ x: p.t, y: p.h }));
+      c.update();
+    }
+
+    function updateHLList(highs, lows, tzMode) {
+      const list = els.hlList;
+      list.innerHTML = '';
+      const items = [...highs.map(h => ({...h, type: 'Flo'})), ...lows.map(l => ({...l, type: 'Fjære'}))]
+        .sort((a,b) => a.t - b.t);
+      for (const it of items) {
+        const row = document.createElement('div');
+        row.className = 'item';
+        row.innerHTML = `<span class="k">${it.type}</span>
+                         <span class="v">${fmtDate(it.t, tzMode)} ${fmtTime(it.t, tzMode)} – ${fmtNum(it.h)}</span>`;
+        list.appendChild(row);
+      }
+      els.countVal.textContent = `${highs.length} flo | ${lows.length} fjære`;
+    }
+
+    function setBanner(msg, kind='ok') {
+      els.banner.style.display = msg ? 'block' : 'none';
+      els.banner.textContent = msg || '';
+      els.banner.classList.toggle('error', kind==='error');
+    }
+
+    async function refresh() {
+      store.set("start", els.start.value);
+      store.set("days", els.days.value);
+      store.set("interval", els.interval.value);
+      store.set("loc", els.loc.value);
+      store.set("source", els.source.value);
+      store.set("tz", els.tz.value);
+
+      const [name, latStr, lonStr] = els.loc.value.split('|');
+      const lat = parseFloat(latStr), lon = parseFloat(lonStr);
+      const days = parseInt(els.days.value, 10);
+      const stepMin = parseInt(els.interval.value, 10);
+      const tzMode = els.tz.value;
+
+      const startValue = els.start.value || todayLocalISODate();
+      if (!els.start.value) els.start.value = startValue;
+      const startDate = new Date(startValue + 'T00:00:00');
+      const endDate = new Date(startDate.getTime() + days*24*3600*1000);
+      els.periodLbl.textContent = `${fmtDate(startDate, tzMode)} – ${fmtDate(new Date(endDate.getTime()-60000), tzMode)}`;
+      els.subtitle.textContent = `Område: ${name[0].toUpperCase()+name.slice(1)} • Oppløsning: ${stepMin} min`;
+      els.sourceLbl.textContent = els.source.value === 'demo' ? 'Demo' : 'Kartverket';
+
+      try {
+        setBanner('');
+        let pts;
+        if (els.source.value === 'demo') {
+          const totalMin = Math.round((endDate - startDate)/60000);
+          pts = generateDemoTide({ start: startDate, minutes: totalMin, stepMin });
+        } else {
+          pts = await fetchKartverket({ lat, lon, start: startDate, end: endDate, stepMin });
+        }
+        if (!pts.length) throw new Error('Ingen datapunkter mottatt');
+
+        const highsLows = findHighLows(pts);
+        const highs = highsLows.filter(x => x.type === 'flo');
+        const lows = highsLows.filter(x => x.type === 'fjære');
+
+        els.maxVal.textContent = fmtNum(Math.max(...pts.map(p => p.h)));
+        els.minVal.textContent = fmtNum(Math.min(...pts.map(p => p.h)));
+
+        updateChart(pts, highs, lows);
+        updateHLList(highs, lows, tzMode);
+
+        if (els.source.value === 'kartverket') {
+          setBanner('Data fra Kartverket (Se havnivå).', 'ok');
+        }
+      } catch (err) {
+        console.error(err);
+        const totalMin = Math.round((endDate - startDate)/60000);
+        const pts = generateDemoTide({ start: startDate, minutes: totalMin, stepMin });
+        const highsLows = findHighLows(pts);
+        updateChart(pts, highsLows.filter(x=>x.type==='flo'), highsLows.filter(x=>x.type==='fjære'));
+        updateHLList(highsLows.filter(x=>x.type==='flo'), highsLows.filter(x=>x.type==='fjære'), tzMode);
+        els.maxVal.textContent = fmtNum(Math.max(...pts.map(p => p.h)));
+        els.minVal.textContent = fmtNum(Math.min(...pts.map(p => p.h)));
+        setBanner('Klarte ikke hente fra Kartverket nå – viser demo. Prøv igjen senere.', 'error');
+      }
+    }
+
+    function updateNetChip() {
+      els.netChip.style.display = navigator.onLine ? 'none' : 'inline-flex';
+      els.netChip.textContent = navigator.onLine ? '' : 'Frakoblet';
+    }
+    window.addEventListener('online', updateNetChip);
+    window.addEventListener('offline', updateNetChip);
+    updateNetChip();
+
+    // A2HS
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      els.btnA2HS.style.display = 'inline-flex';
+    });
+    els.btnA2HS.addEventListener('click', async () => {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      await deferredPrompt.userChoice;
+      deferredPrompt = null;
+      els.btnA2HS.style.display = 'none';
+    });
+
+    els.btnRefresh.addEventListener('click', refresh);
+    els.btnZoomReset.addEventListener('click', () => {
+      if (chart && chart.resetZoom) chart.resetZoom();
+      refresh();
+    });
+
+    refresh();
+
+    // Innebygd Service Worker (én-fil)
+    if ('serviceWorker' in navigator) {
+      const swCode = `
+        const CACHE_NAME = 'tide-bergen-v1';
+        const PRECACHE = [
+          self.location.href,
+          'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js',
+          'https://cdnjs.cloudflare.com/ajax/libs/chartjs-adapter-date-fns/3.0.0/chartjs-adapter-date-fns.min.js',
+          'https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-zoom/2.0.1/chartjs-plugin-zoom.umd.min.js'
+        ];
+
+        self.addEventListener('install', (event) => {
+          event.waitUntil((async () => {
+            const cache = await caches.open(CACHE_NAME);
+            try { await cache.addAll(PRECACHE); } catch (e) { /* noen ressurser kan være opaque */ }
+            self.skipWaiting();
+          })());
+        });
+
+        self.addEventListener('activate', (event) => {
+          event.waitUntil((async () => {
+            const keys = await caches.keys();
+            await Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)));
+            self.clients.claim();
+          })());
+        });
+
+        self.addEventListener('fetch', (event) => {
+          const url = new URL(event.request.url);
+
+          // Kartverket API: network-first, fallback cache
+          if (url.hostname === 'api.sehavniva.no' && url.pathname.endsWith('/tideapi.php')) {
+            event.respondWith((async () => {
+              try {
+                const net = await fetch(event.request);
+                const cache = await caches.open(CACHE_NAME);
+                cache.put(event.request, net.clone());
+                return net;
+              } catch (e) {
+                const cache = await caches.open(CACHE_NAME);
+                const cached = await cache.match(event.request);
+                if (cached) return cached;
+                return new Response(JSON.stringify({ error: 'offline' }), { status: 503, headers: { 'Content-Type': 'application/json' } });
+              }
+            })());
+            return;
+          }
+
+          // Statiske ressurser: cache-first
+          if (PRECACHE.includes(event.request.url) || event.request.mode === 'navigate') {
+            event.respondWith((async () => {
+              const cache = await caches.open(CACHE_NAME);
+              const cached = await cache.match(event.request);
+              if (cached) return cached;
+              try {
+                const net = await fetch(event.request);
+                cache.put(event.request, net.clone());
+                return net;
+              } catch (e) {
+                const root = await cache.match(self.location.href);
+                return root || Response.error();
+              }
+            })());
+            return;
+          }
+        });
+      `;
+      const blob = new Blob([swCode], { type: 'text/javascript' });
+      const swUrl = URL.createObjectURL(blob);
+      navigator.serviceWorker.register(swUrl).catch(console.error);
+    }
+  </script></body>
+</html>
