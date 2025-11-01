@@ -1,694 +1,550 @@
-<!DOCTYPE html><html lang="nb">
+<!DOCTYPE html>
+<html lang="nb">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="viewport-fit=cover,width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-  <title>Tidevann – Bergensområdet v4</title>  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="Tide Bergen" />
-  <meta name="theme-color" content="#0f172a" />  <style>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Tidevann – Bergen (statisk)</title>
+
+  <!-- Viktig for GitHub Pages under /Tidevanns/ -->
+  <base href="/Tidevanns/">
+
+  <meta name="description" content="Statisk visning av tidevannsdata for Bergen fra Tidevann.xml" />
+  <link rel="canonical" href="https://skyrre.github.io/Tidevanns/" />
+
+  <style>
     :root {
       color-scheme: light dark;
-      --bg: #0b1220;
-      --fg: #e5e7eb;
-      --muted: #9aa0a6;
-      --card: #111827;
-      --accent: #60a5fa;
-      --accent-2: #34d399;
-      --warn: #f59e0b;
-      --danger: #ef4444;
-      --border: #1f2937;
-      --safe-top: env(safe-area-inset-top);
-      --safe-bottom: env(safe-area-inset-bottom);
+      --bg: #0b0b0c;
+      --fg: #e9eef3;
+      --muted: #9aa6b2;
+      --accent: #2f7dd1;
+      --grid: #2a2f36;
+      --card: #14181d;
+      --border: #1f262d;
+      --good: #2db071;
+      --bad: #d9534f;
+    }
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #f7f8fa;
+        --fg: #0f1720;
+        --muted: #5c6773;
+        --accent: #155eab;
+        --grid: #e6ebf1;
+        --card: #ffffff;
+        --border: #dfe6ee;
+      }
     }
     * { box-sizing: border-box; }
-    html, body { height: 100%; }
+    html, body { margin: 0; padding: 0; height: 100%; }
     body {
-      margin: 0;
-      font-family: -apple-system, system-ui, Segoe UI, Roboto, Inter, Helvetica, Arial, sans-serif;
-      background: linear-gradient(180deg, #0a0f1d 0%, #0b1220 100%);
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      background: var(--bg);
       color: var(--fg);
-      padding-top: calc(8px + var(--safe-top));
-      padding-bottom: calc(8px + var(--safe-bottom));
+      line-height: 1.45;
     }
-    .app { max-width: 980px; margin: 0 auto; padding: 12px; }
-    header { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
-    .title { display: flex; align-items: center; gap: 10px; }
-    .title .logo {
-      width: 32px; height: 32px; border-radius: 8px;
-      background: linear-gradient(135deg, #2563eb, #06b6d4);
-      display: inline-flex; align-items: center; justify-content: center;
-      font-weight: 800; color: white;
-      box-shadow: 0 4px 20px rgba(37,99,235,0.4);
-    }
-    .title h1 { margin: 0; font-size: 18px; font-weight: 700; letter-spacing: 0.2px; }
+    header, main { width: min(1100px, 100%); margin: 0 auto; padding: 16px; }
+    header { padding-top: 20px; }
+    h1 { font-size: 1.6rem; margin: 0 0 6px; }
+    .sub { color: var(--muted); font-size: 0.95rem; margin-bottom: 14px; }
     .controls {
-      background: rgba(17,24,39,0.7);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 10px;
-      display: grid;
-      grid-template-columns: repeat(8, minmax(0, 1fr));
-      gap: 10px;
+      display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 10px 0 16px;
     }
-    .control { display: flex; flex-direction: column; gap: 6px; }
-    .control label { font-size: 12px; color: var(--muted); }
-    select, input, button {
-      -webkit-appearance: none; appearance: none;
-      background: #0f172a; color: var(--fg);
-      border: 1px solid var(--border); border-radius: 10px;
-      padding: 10px; font-size: 14px; outline: none;
+    button.btn {
+      appearance: none; border: 1px solid var(--border); background: var(--card);
+      color: var(--fg); padding: 8px 12px; border-radius: 8px; cursor: pointer; font-weight: 600;
     }
-    button.primary { background: linear-gradient(135deg, #2563eb, #06b6d4); border: none; color: #fff; font-weight: 600; cursor: pointer; }
-    button.ghost { background: transparent; border: 1px solid var(--border); color: var(--fg); cursor: pointer; }
-    .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-    .hint { font-size: 12px; color: var(--muted); }
-    .cards { margin-top: 12px; display: grid; gap: 12px; grid-template-columns: 1fr; }
-    .card { background: rgba(17,24,39,0.7); border: 1px solid var(--border); border-radius: 16px; padding: 12px; }
-    .card h2 { margin: 0 0 10px 0; font-size: 16px; }
-    .legend { display: flex; gap: 12px; align-items: center; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
-    .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
-    .dot.line { border-radius: 2px; height: 6px; width: 24px; }
-    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: start; }
-    .list { display: grid; gap: 8px; }
-    .item {
-      display: flex; justify-content: space-between; align-items: center;
-      padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px; background: #0f172a;
+    button.btn[aria-pressed="true"] { border-color: var(--accent); background: color-mix(in oklab, var(--accent) 12%, var(--card)); }
+    .info {
+      display: grid; gap: 10px; grid-template-columns: repeat(2, minmax(0,1fr));
     }
-    .item .k { font-weight: 600; }
-    .item .v { color: var(--muted); }
-    .banner {
-      background: rgba(34,197,94,0.1);
-      border: 1px solid rgba(34,197,94,0.35);
-      color: #def7ec;
-      border-radius: 12px;
-      padding: 10px;
-      font-size: 13px;
-      display: none;
-      word-break: break-word;
+    @media (min-width: 900px) { .info { grid-template-columns: 2fr 1fr; } }
+    .card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: clip;
     }
-    .banner.error { background: rgba(239,68,68,0.08); border-color: rgba(239,68,68,0.4); color: #fecaca; }
-    .footnotes { margin-top: 8px; font-size: 12px; color: var(--muted); }
-    canvas { width: 100% !important; height: 320px !important; }
-    .small { font-size: 12px; color: var(--muted); }
-    .chip { display:inline-flex; gap:6px; align-items:center; padding:4px 8px; border:1px solid var(--border); border-radius:999px; background:#0f172a; font-size:12px; color:#9aa0a6;}
-    @media (max-width: 1200px) { .controls { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-  </style>  <!-- Kun Chart.js + zoom (linear-akse, ingen datoadapter nødvendig) -->  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>  <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-zoom/2.0.1/chartjs-plugin-zoom.umd.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script></head>
+    .card h2 { font-size: 1rem; margin: 0; padding: 12px 14px; border-bottom: 1px solid var(--border); }
+    .pad { padding: 12px; }
+    #chart-wrap { position: relative; width: 100%; height: 340px; }
+    #chart { width: 100%; height: 100%; display: block; }
+    .legend { display: flex; gap: 14px; align-items: center; color: var(--muted); font-size: 0.9rem; margin-top: 8px; }
+    .legend .swatch { width: 14px; height: 3px; border-radius: 2px; background: var(--accent); display: inline-block; vertical-align: middle; margin-right: 6px; }
+    table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+    thead th {
+      text-align: left; font-size: 0.9rem; color: var(--muted);
+      position: sticky; top: 0; background: var(--card); border-bottom: 1px solid var(--border);
+      padding: 10px 8px;
+    }
+    tbody td { padding: 8px; border-bottom: 1px dashed var(--border); }
+    tbody tr:hover { background: color-mix(in oklab, var(--accent) 8%, var(--card)); }
+    .muted { color: var(--muted); }
+    .stat-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+    .stat { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 10px; }
+    .stat .label { color: var(--muted); font-size: 0.85rem; }
+    .stat .val { font-weight: 700; font-size: 1.1rem; }
+    footer { padding: 30px 16px 50px; color: var(--muted); text-align: center; }
+    .error { color: var(--bad); font-weight: 600; }
+    .ok { color: var(--good); font-weight: 600; }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .spacer { flex: 1; }
+    .small { font-size: 0.9rem; }
+    .nowrap { white-space: nowrap; }
+  </style>
+</head>
 <body>
-  <div class="app">
-    <header>
-      <div class="title">
-        <div class="logo">🌊</div>
-        <div>
-          <h1>Tidevann – Bergensområdet</h1>
-          <div class="hint" id="subtitle">v4 • Interaktiv graf og flo/fjære</div>
-        </div>
-      </div>
+  <header>
+    <h1>Tidevann – Bergen (statisk)</h1>
+    <div class="sub">Leser data fra Tidevann.xml i samme mappe (ingen API-kall).</div>
+
+    <div class="controls">
       <div class="row">
-        <span id="netChip" class="chip" style="display:none;">Frakoblet</span>
-        <button id="btnTestApi" class="ghost">Test API</button>
-        <button id="btnClearCache" class="ghost">Tøm cache</button>
-        <button id="btnA2HS" class="ghost" style="display:none">Installer</button>
-        <button id="btnRefresh" class="primary">Oppdater</button>
+        <button class="btn" data-range="today" aria-pressed="true">I dag</button>
+        <button class="btn" data-range="7d">Neste 7 dager</button>
+        <button class="btn" data-range="month">Denne måneden</button>
+        <button class="btn" data-range="all">Alt</button>
       </div>
-    </header><section class="controls">
-  <div class="control">
-    <label for="loc">Lokasjon</label>
-    <select id="loc">
-      <option value="bergen|60.39299|5.32415">Bergen sentrum</option>
-      <option value="askoy|60.4000|5.2000">Askøy</option>
-      <option value="sotra|60.3500|5.0000">Sotra</option>
-      <option value="os|60.1833|5.4667">Os</option>
-      <option value="frekkhaug|60.5167|5.2333">Frekhaug</option>
-    </select>
-  </div>
-  <div class="control">
-    <label for="start">Startdato</label>
-    <input id="start" type="date" />
-  </div>
-  <div class="control">
-    <label for="days">Antall dager</label>
-    <select id="days">
-      <option value="7">7</option>
-      <option value="14" selected>14</option>
-      <option value="21">21</option>
-      <option value="30">30</option>
-      <option value="60">60</option>
-    </select>
-  </div>
-  <div class="control">
-    <label for="interval">Oppløsning (min)</label>
-    <select id="interval">
-      <option value="10">10</option>
-      <option value="15">15</option>
-      <option value="30">30</option>
-      <option value="60" selected>60</option>
-    </select>
-  </div>
-  <div class="control">
-    <label for="source">Datakilde</label>
-    <select id="source">
-      <option value="demo">Demo (syntetisk)</option>
-      <option value="kartverket" selected>Kartverket (Se havnivå)</option>
-    </select>
-  </div>
-  <div class="control">
-    <label for="tz">Tidssone</label>
-    <select id="tz">
-      <option value="local" selected>Lokal</option>
-      <option value="utc">UTC</option>
-    </select>
-  </div>
-  <div class="control">
-    <label>&nbsp;</label>
-    <div class="hint">Tips: Start 7–14 dager og 60 min for raske svar.</div>
-  </div>
-</section>
-
-<div id="banner" class="banner"></div>
-
-<section class="cards">
-  <div class="card">
-    <div class="legend">
-      <span class="dot line" style="background:linear-gradient(90deg,#60a5fa,#34d399)"></span>
-      Tidehøyde (m) over tid
-      <span class="dot" style="background:#34d399"></span> Flo
-      <span class="dot" style="background:#f472b6"></span> Fjære
-    </div>
-    <canvas id="chart"></canvas>
-    <div class="footnotes small">Klyp for å zoome, dra for å panorere.</div>
-    <div class="row" style="margin-top:8px;">
-      <button id="btnZoomReset" class="ghost">Nullstill zoom</button>
-      <span class="hint">Periode: <span id="periodLbl"></span></span>
-    </div>
-  </div>
-
-  <div class="grid2">
-    <div class="card">
-      <h2>Flo og fjære</h2>
-      <div id="hlList" class="list"></div>
-    </div>
-    <div class="card">
-      <h2>Nøkkelverdier</h2>
-      <div class="list">
-        <div class="item"><span class="k">Maks høyde</span><span class="v" id="maxVal">–</span></div>
-        <div class="item"><span class="k">Min høyde</span><span class="v" id="minVal">–</span></div>
-        <div class="item"><span class="k">Antall flo/fjære</span><span class="v" id="countVal">–</span></div>
-        <div class="item"><span class="k">Datakilde</span><span class="v" id="sourceLbl">Kartverket</span></div>
+      <span class="spacer"></span>
+      <div class="row small">
+        <span id="dataset-meta" class="muted">Laster …</span>
       </div>
     </div>
-  </div>
-</section>
+  </header>
 
-<p class="small" style="margin-top:10px;">
-  Kilde: Kartverket – Se havnivå (ved valgt datakilde). Grafen bruker lineær tidsakse (robust).
-</p>
-  </div>  <script>
-    const APP_VERSION = 'v4';
-    const SEHAVNIVA_BASE = "https://aged-cherry-abc4.skyrre.workers.dev/tide-smart";
+  <main class="info">
+    <section class="card">
+      <h2>Graf</h2>
+      <div class="pad">
+        <div id="chart-wrap"><canvas id="chart"></canvas></div>
+        <div class="legend"><span class="swatch"></span>Vannstand (m)</div>
+      </div>
+    </section>
+    <section class="card">
+      <h2>Statistikk (filter)</h2>
+      <div class="pad">
+        <div class="stat-grid">
+          <div class="stat">
+            <div class="label">Minimum</div>
+            <div class="val" id="stat-min">–</div>
+          </div>
+          <div class="stat">
+            <div class="label">Maksimum</div>
+            <div class="val" id="stat-max">–</div>
+          </div>
+          <div class="stat">
+            <div class="label">Snitt</div>
+            <div class="val" id="stat-avg">–</div>
+          </div>
+        </div>
+        <div class="small muted" style="margin-top:8px" id="stat-info">–</div>
+      </div>
+    </section>
 
-    const store = {
-      set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch(_){} },
-      get(k, def) { try { const v = JSON.parse(localStorage.getItem(k)); return v ?? def; } catch(_) { return def; } },
-      remove(k) { try { localStorage.removeItem(k); } catch(_){} }
-    };
+    <section class="card" style="grid-column: 1 / -1;">
+      <h2>Tabell</h2>
+      <div class="pad" style="max-height: 50vh; overflow: auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>Dato/tid</th>
+              <th>Høyde (m)</th>
+              <th>Type</th>
+            </tr>
+          </thead>
+          <tbody id="table-body">
+            <tr><td colspan="3" class="muted">Laster data …</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
 
-    const els = {
-      start: document.getElementById("start"),
-      days: document.getElementById("days"),
-      interval: document.getElementById("interval"),
-      loc: document.getElementById("loc"),
-      source: document.getElementById("source"),
-      tz: document.getElementById("tz"),
-      subtitle: document.getElementById("subtitle"),
-      btnRefresh: document.getElementById("btnRefresh"),
-      btnZoomReset: document.getElementById("btnZoomReset"),
-      banner: document.getElementById("banner"),
-      periodLbl: document.getElementById("periodLbl"),
-      hlList: document.getElementById("hlList"),
-      maxVal: document.getElementById("maxVal"),
-      minVal: document.getElementById("minVal"),
-      countVal: document.getElementById("countVal"),
-      sourceLbl: document.getElementById("sourceLbl"),
-      btnA2HS: document.getElementById("btnA2HS"),
-      netChip: document.getElementById("netChip"),
-      btnTestApi: document.getElementById("btnTestApi"),
-      btnClearCache: document.getElementById("btnClearCache"),
-    };
+  <footer>
+    Data kilde: Tidevann.xml • Tid vises i din lokale tidssone (<span id="tz"></span>)
+  </footer>
 
-    const todayLocalISODate = () => {
-      const d = new Date();
-      const y = d.getFullYear();
-      const m = String(d.getMonth()+1).padStart(2,'0');
-      const dd = String(d.getDate()).padStart(2,'0');
-      return `${y}-${m}-${dd}`;
-    };
-    els.start.value = store.get("start", todayLocalISODate());
-    els.days.value = store.get("days", "14");
-    els.interval.value = store.get("interval", "60");
-    els.loc.value = store.get("loc", "bergen|60.39299|5.32415");
-    els.source.value = store.get("source", "kartverket");
-    els.tz.value = store.get("tz", "local");
+  <script>
+    const XML_PATH = 'Tidevann.xml'; // Ligger i samme mappe som index.html
 
-    function fmtDate(dt, tzMode) {
-      const opts = { day:'2-digit', month:'2-digit', year:'numeric' };
-      return new Intl.DateTimeFormat(undefined, {...opts, timeZone: tzMode==='utc'?'UTC':undefined}).format(dt);
-    }
-    function fmtTime(dt, tzMode) {
-      const opts = { hour:'2-digit', minute:'2-digit' };
-      return new Intl.DateTimeFormat(undefined, {...opts, timeZone: tzMode==='utc'?'UTC':undefined}).format(dt);
-    }
-    function fmtNum(n) { return `${n.toFixed(2)} m`; }
-    function fmtTick(ts, tzMode) {
-      const d = new Date(ts);
-      return new Intl.DateTimeFormat(undefined, {
-        day:'2-digit', month:'2-digit', timeZone: tzMode==='utc'?'UTC':undefined
-      }).format(d);
-    }
-    function toISO(dt) {
-      const y = dt.getFullYear();
-      const m = String(dt.getMonth()+1).padStart(2,'0');
-      const d = String(dt.getDate()).padStart(2,'0');
-      const hh = String(dt.getHours()).padStart(2,'0');
-      const mm = String(dt.getMinutes()).padStart(2,'0');
-      return `${y}-${m}-${d}T${hh}:${mm}:00`;
-    }
+    // Global state
+    let allPoints = [];  // {t: Date, v: number, type?: 'H'|'L'|'pred'|string}
+    let filtered = [];   // nåværende filter
+    let dataExtent = null; // {tMin, tMax, vMin, vMax}
+    let currentRange = 'today';
 
-    function generateDemoTide({ start, minutes, stepMin }) {
-      const pts = [];
-      const twoPi = Math.PI * 2;
-      const T_M2 = 12.4206, T_S2 = 12.0, T_K1 = 23.9345;
-      const A_M2 = 0.8, A_S2 = 0.25, A_K1 = 0.15, BASE = 0.5;
-      for (let i=0;i<=minutes;i+=stepMin) {
-        const hours = i/60;
-        const m2 = A_M2 * Math.sin(twoPi * hours / T_M2);
-        const s2 = A_S2 * Math.sin(twoPi * hours / T_S2 + 0.4);
-        const k1 = A_K1 * Math.sin(twoPi * hours / T_K1 + 1.2);
-        const h = BASE + m2 + s2 + k1;
-        const t = new Date(start.getTime() + i*60000);
-        pts.push({ t, h, x: t.getTime(), y: h });
-      }
-      return pts;
-    }
+    const $ = (sel) => document.querySelector(sel);
+    const $$ = (sel) => Array.from(document.querySelectorAll(sel));
 
-    function buildKartverketUrls({ lat, lon, fromISO, toISO, intervalMin }) {
-      const base = {
-        fromtime: fromISO.slice(0,16),
-        totime: toISO.slice(0,16),
-        interval: String(intervalMin),
-        file: 'json'
-      };
-      const coords = [
-        { lat: lat.toFixed(5), lon: lon.toFixed(5) },
-        { place: 'Bergen' }
-      ];
-      const datatypes = ['prediction','predictions','tidetable'];
-      const refcodes = ['CD','LAT'];
-      const langKeys = [{lang:'nb'}, {language:'nb'}];
-      const tzs = [undefined, {tzone:'utc'}];
-
-      const combos = [];
-      for (const c of coords) for (const dt of datatypes) for (const rc of refcodes)
-        for (const lk of langKeys) for (const tz of tzs) {
-          combos.push({ ...base, ...c, datatype: dt, refcode: rc, ...lk, ...(tz||{}) });
-        }
-      return combos.map(p => `${SEHAVNIVA_BASE}?${new URLSearchParams(p).toString()}`);
-    }
-
-    function adaptKartverketJson(json) {
-      const out = [];
-      if (Array.isArray(json?.predictions)) {
-        for (const e of json.predictions) {
-          const t = new Date(e.time);
-          const v = parseFloat(e.value);
-          if (!isFinite(v) || isNaN(t)) continue;
-          out.push({ t, v });
-        }
-      } else if (Array.isArray(json?.data)) {
-        for (const e of json.data) {
-          const t = new Date(e.time || e.timestamp);
-          const v = parseFloat(e.value);
-          if (!isFinite(v) || isNaN(t)) continue;
-          out.push({ t, v });
-        }
-      } else if (json?.tideTable?.tideTableEntries?.length) {
-        for (const e of json.tideTable.tideTableEntries) {
-          const ts = e.time || (e.date && e.time ? `${e.date}T${e.time}` : e.date);
-          const t = new Date(ts);
-          const v = parseFloat(e.value);
-          if (!isFinite(v) || isNaN(t)) continue;
-          out.push({ t, v });
-        }
-      } else if (Array.isArray(json)) {
-        for (const e of json) {
-          const t = new Date(e.time || e.timestamp || e.date);
-          const v = parseFloat(e.value);
-          if (!isFinite(v) || isNaN(t)) continue;
-          out.push({ t, v });
-        }
-      }
-      if (!out.length) return [];
-      const maxVal = Math.max(...out.map(o => o.v));
-      const factor = maxVal > 20 ? 0.01 : 1; // cm -> m
-      return out.map(o => {
-        const h = o.v * factor;
-        const x = o.t.getTime();
-        return { t: o.t, h, x, y: h };
+    document.addEventListener('DOMContentLoaded', () => {
+      $('#tz').textContent = Intl.DateTimeFormat().resolvedOptions().timeZone || 'lokal tid';
+      // Knapper
+      $$('.btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          $$('.btn').forEach(b => b.setAttribute('aria-pressed', 'false'));
+          btn.setAttribute('aria-pressed', 'true');
+          currentRange = btn.dataset.range;
+          applyFilterAndRender();
+        });
       });
-    }
 
-    let lastTriedUrl = '';
-    async function fetchKartverket({ lat, lon, start, end, stepMin }) {
-      const urls = buildKartverketUrls({ lat, lon, fromISO: toISO(start), toISO: toISO(end), intervalMin: stepMin });
-      let lastErr = null;
-      for (const url of urls) {
-        try {
-          lastTriedUrl = url;
-          const r = await fetch(url, { headers: { 'Accept':'application/json' }, cache: 'no-cache' });
-          if (!r.ok) throw new Error(`HTTP ${r.status}`);
-          const json = await r.json();
-          const pts = adaptKartverketJson(json);
-          if (pts.length) return pts;
-          lastErr = new Error('Tomt datasett');
-        } catch (e) {
-          lastErr = e;
-        }
-      }
-      throw lastErr || new Error('Kunne ikke hente fra Kartverket');
-    }
+      loadXml();
+      window.addEventListener('resize', debounce(renderChart, 100));
+    });
 
-    function findHighLows(pts) {
-      const res = [];
-      for (let i=1; i<pts.length-1; i++) {
-        const prev = pts[i-1].h, cur = pts[i].h, next = pts[i+1].h;
-        if (cur > prev && cur > next) res.push({ type: 'flo', ...pts[i] });
-        if (cur < prev && cur < next) res.push({ type: 'fjære', ...pts[i] });
-      }
-      return res;
-    }
-
-    let chart;
-    function ensureChart(tzMode) {
-      if (chart) return chart;
-      const ctx = document.getElementById("chart");
-      chart = new Chart(ctx, {
-        type: 'line',
-        data: {
-          datasets: [
-            {
-              label: 'Tidehøyde (m)',
-              data: [],
-              borderColor: '#60a5fa',
-              backgroundColor: 'rgba(96,165,250,0.15)',
-              fill: true,
-              tension: 0.3,
-              pointRadius: 0,
-              borderWidth: 2,
-              parsing: false
-            },
-            {
-              label: 'Flo',
-              data: [],
-              type: 'scatter',
-              pointBackgroundColor: '#34d399',
-              pointBorderColor: '#34d399',
-              pointRadius: 4,
-              showLine: false,
-              parsing: false
-            },
-            {
-              label: 'Fjære',
-              data: [],
-              type: 'scatter',
-              pointBackgroundColor: '#f472b6',
-              pointBorderColor: '#f472b6',
-              pointRadius: 4,
-              showLine: false,
-              parsing: false
-            }
-          ]
-        },
-        options: {
-          scales: {
-            x: {
-              type: 'linear',
-              ticks: {
-                color: '#9aa0a6',
-                callback: (value) => fmtTick(value, tzMode)
-              },
-              grid: { color: 'rgba(255,255,255,0.06)' }
-            },
-            y: {
-              title: { display: true, text: 'm' },
-              ticks: { color: '#9aa0a6' },
-              grid: { color: 'rgba(255,255,255,0.06)' }
-            }
-          },
-          plugins: {
-            legend: { display: false },
-            tooltip: {
-              callbacks: {
-                title: (items) => {
-                  if (!items.length) return '';
-                  const ts = items[0].parsed.x;
-                  const d = new Date(ts);
-                  return `${fmtDate(d, tzMode)} ${fmtTime(d, tzMode)}`;
-                },
-                label: (c) => {
-                  const y = c.parsed.y;
-                  if (typeof y === 'number') return ` ${y.toFixed(2)} m`;
-                  return c.dataset.label || '';
-                }
-              }
-            },
-            zoom: {
-              zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x' },
-              pan: { enabled: true, mode: 'x' }
-            }
-          },
-          interaction: { mode: 'nearest', intersect: false },
-          maintainAspectRatio: false
-        }
-      });
-      return chart;
-    }
-
-    function updateChart(pts, highs, lows, tzMode) {
-      const c = ensureChart(tzMode);
-      const xs = pts.map(p => p.x);
-      c.options.scales.x.min = Math.min(...xs);
-      c.options.scales.x.max = Math.max(...xs);
-      c.options.scales.x.ticks.callback = (value) => fmtTick(value, tzMode);
-
-      c.data.datasets[0].data = pts.map(p => ({ x: p.x, y: p.h }));
-      c.data.datasets[1].data = highs.map(p => ({ x: p.x, y: p.h }));
-      c.data.datasets[2].data = lows.map(p => ({ x: p.x, y: p.h }));
-      c.update();
-    }
-
-    function updateHLList(highs, lows, tzMode) {
-      const list = els.hlList;
-      list.innerHTML = '';
-      const items = [...highs.map(h => ({...h, type: 'Flo'})), ...lows.map(l => ({...l, type: 'Fjære'}))]
-        .sort((a,b) => a.x - b.x);
-      for (const it of items) {
-        const row = document.createElement('div');
-        row.className = 'item';
-        row.innerHTML = `<span class="k">${it.type}</span>
-                         <span class="v">${fmtDate(new Date(it.x), tzMode)} ${fmtTime(new Date(it.x), tzMode)} – ${fmtNum(it.h)}</span>`;
-        list.appendChild(row);
-      }
-      els.countVal.textContent = `${highs.length} flo | ${lows.length} fjære`;
-    }
-
-    function setBanner(msg, kind='ok') {
-      els.banner.style.display = msg ? 'block' : 'none';
-      els.banner.textContent = msg || '';
-      els.banner.classList.toggle('error', kind==='error');
-    }
-
-    async function refresh() {
-      store.set("start", els.start.value);
-      store.set("days", els.days.value);
-      store.set("interval", els.interval.value);
-      store.set("loc", els.loc.value);
-      store.set("source", els.source.value);
-      store.set("tz", els.tz.value);
-
-      const [name, latStr, lonStr] = els.loc.value.split('|');
-      const lat = parseFloat(latStr), lon = parseFloat(lonStr);
-      const days = parseInt(els.days.value, 10);
-      const stepMin = parseInt(els.interval.value, 10);
-      const tzMode = els.tz.value;
-
-      const startValue = els.start.value || todayLocalISODate();
-      if (!els.start.value) els.start.value = startValue;
-      const startDate = new Date(startValue + 'T00:00:00');
-      const endDate = new Date(startDate.getTime() + days*24*3600*1000);
-      els.periodLbl.textContent = `${fmtDate(startDate, tzMode)} – ${fmtDate(new Date(endDate.getTime()-60000), tzMode)}`;
-      els.subtitle.textContent = `v4 • Område: ${name[0].toUpperCase()+name.slice(1)} • Oppløsning: ${stepMin} min`;
-      els.sourceLbl.textContent = els.source.value === 'demo' ? 'Demo' : 'Kartverket';
-
+    async function loadXml() {
       try {
-        setBanner('');
-        let pts;
-        if (els.source.value === 'demo') {
-          const totalMin = Math.round((endDate - startDate)/60000);
-          pts = generateDemoTide({ start: startDate, minutes: totalMin, stepMin });
-        } else {
-          pts = await fetchKartverket({ lat, lon, start: startDate, end: endDate, stepMin });
-        }
-        if (!pts.length) throw new Error('Ingen datapunkter mottatt');
+        const res = await fetch(XML_PATH, { cache: 'force-cache' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const text = await res.text();
 
-        const highsLows = findHighLows(pts);
-        const highs = highsLows.filter(x => x.type === 'flo');
-        const lows = highsLows.filter(x => x.type === 'fjære');
+        // Parse til XML DOM
+        const doc = new DOMParser().parseFromString(text, 'application/xml');
+        // Sjekk parser error
+        const parserError = doc.querySelector('parsererror');
+        if (parserError) throw new Error('Ugyldig XML');
 
-        els.maxVal.textContent = fmtNum(Math.max(...pts.map(p => p.h)));
-        els.minVal.textContent = fmtNum(Math.min(...pts.map(p => p.h)));
+        allPoints = parseTideXml(doc);
+        if (!allPoints.length) throw new Error('Fant ingen datapunkter i Tidevann.xml');
 
-        updateChart(pts, highs, lows, tzMode);
-        updateHLList(highs, lows, tzMode);
+        // Extent
+        const tMin = allPoints[0].t;
+        const tMax = allPoints[allPoints.length - 1].t;
+        const vs = allPoints.map(p => p.v).filter(Number.isFinite);
+        const vMin = Math.min(...vs);
+        const vMax = Math.max(...vs);
+        dataExtent = { tMin, tMax, vMin, vMax };
 
-        if (els.source.value === 'kartverket') setBanner('Data fra Kartverket (Se havnivå).', 'ok');
+        // Meta
+        $('#dataset-meta').innerHTML = `Punkter: <span class="ok">${allPoints.length}</span> • Periode: ${fmtDate(tMin)} – ${fmtDate(tMax)} • Enhet: meter`;
+
+        // Init
+        applyFilterAndRender();
       } catch (err) {
         console.error(err);
-        const totalMin = Math.round((endDate - startDate)/60000);
-        const pts = generateDemoTide({ start: startDate, minutes: totalMin, stepMin });
-        const highsLows = findHighLows(pts);
-        updateChart(pts, highsLows.filter(x=>x.type==='flo'), highsLows.filter(x=>x.type==='fjære'), tzMode);
-        updateHLList(highsLows.filter(x=>x.type==='flo'), highsLows.filter(x=>x.type==='fjære'), tzMode);
-        els.maxVal.textContent = fmtNum(Math.max(...pts.map(p => p.h)));
-        els.minVal.textContent = fmtNum(Math.min(...pts.map(p => p.h)));
-        setBanner(`Klarte ikke hente fra Kartverket – viser demo nå. Sist prøvd URL: ${lastTriedUrl || '(ingen)'}`, 'error');
+        $('#dataset-meta').innerHTML = `<span class="error">Kunne ikke laste Tidevann.xml (${err.message}).</span>`;
+        $('#table-body').innerHTML = `<tr><td colspan="3" class="error">Feil ved lasting/parsing av Tidevann.xml.</td></tr>`;
       }
     }
 
-    function updateNetChip() {
-      els.netChip.style.display = navigator.onLine ? 'none' : 'inline-flex';
-      els.netChip.textContent = navigator.onLine ? '' : 'Frakoblet';
-    }
-    window.addEventListener('online', updateNetChip);
-    window.addEventListener('offline', updateNetChip);
-    updateNetChip();
+    // Robust parser: prøver vanlige mønstre fra tide-XML (attributter/time + value/height)
+    function parseTideXml(doc) {
+      const points = [];
 
-    // A2HS
-    let deferredPrompt;
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      deferredPrompt = e;
-      els.btnA2HS.style.display = 'inline-flex';
-    });
-    els.btnA2HS.addEventListener('click', async () => {
-      if (!deferredPrompt) return;
-      deferredPrompt.prompt();
-      await deferredPrompt.userChoice;
-      deferredPrompt = null;
-      els.btnA2HS.style.display = 'none';
-    });
+      // 1) Samle alle elementer med tid + verdi som attributter
+      const allEls = Array.from(doc.querySelectorAll('*'));
+      for (const el of allEls) {
+        const timeAttr = el.getAttribute('time') || el.getAttribute('date') || el.getAttribute('datetime') || el.getAttribute('tid') || null;
+        let valueAttr = el.getAttribute('value') || el.getAttribute('height') || el.getAttribute('val') || el.getAttribute('cm') || null;
 
-    els.btnRefresh.addEventListener('click', refresh);
-    els.btnZoomReset.addEventListener('click', () => {
-      if (chart && chart.resetZoom) chart.resetZoom();
-      refresh();
-    });
-
-    // Test API-knapp: åpner sist forsøkte URL, ellers genererer en
-    els.btnTestApi.addEventListener('click', () => {
-      if (lastTriedUrl) {
-        window.open(lastTriedUrl, '_blank');
-      } else {
-        const [_, latStr, lonStr] = els.loc.value.split('|');
-        const lat = parseFloat(latStr), lon = parseFloat(lonStr);
-        const startValue = els.start.value || todayLocalISODate();
-        const startDate = new Date(startValue + 'T00:00:00');
-        const endDate = new Date(startDate.getTime() + parseInt(els.days.value,10)*24*3600*1000);
-        const url = buildKartverketUrls({
-          lat, lon, fromISO: toISO(startDate), toISO: toISO(endDate), intervalMin: parseInt(els.interval.value,10)
-        })[0];
-        window.open(url, '_blank');
-      }
-    });
-
-    // Tøm cache-knapp: sletter SW-cacher og SW-registrering, så laster på nytt
-    els.btnClearCache.addEventListener('click', async () => {
-      try {
-        const keys = await caches.keys();
-        await Promise.all(keys.map(k => caches.delete(k)));
-        if ('serviceWorker' in navigator) {
-          const regs = await navigator.serviceWorker.getRegistrations();
-          await Promise.all(regs.map(r => r.unregister()));
+        // Noen ganger ligger verdien i tekstinnholdet
+        if (!valueAttr) {
+          const txt = (el.textContent || '').trim();
+          if (txt && /^-?\d+(\.\d+)?$/.test(txt)) valueAttr = txt;
         }
-      } catch (e) {}
-      location.reload(true);
-    });
 
-    // Første last
-    refresh();
+        if (!timeAttr || !valueAttr) continue;
 
-    // Service Worker (ny cache-navn for å tvinge oppdatering)
-    if ('serviceWorker' in navigator) {
-      const swCode = `
-        const CACHE_NAME = 'tide-bergen-${APP_VERSION}';
-        const PRECACHE = [
-          self.location.href,
-          'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js',
-          'https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-zoom/2.0.1/chartjs-plugin-zoom.umd.min.js'
-        ];
-        self.addEventListener('install', (event) => {
-          event.waitUntil((async () => {
-            const cache = await caches.open(CACHE_NAME);
-            try { await cache.addAll(PRECACHE); } catch (e) {}
-            self.skipWaiting();
-          })());
+        const t = parseDateGuess(timeAttr);
+        if (!t) continue;
+        const v = normalizeValueToMeters(parseFloat(valueAttr), el);
+        if (!isFinite(v)) continue;
+
+        // Type: H/L/pred hvis finnes
+        let type = el.getAttribute('type') || el.tagName.toLowerCase();
+        if (type === 'h' || /high/i.test(type)) type = 'H';
+        else if (type === 'l' || /low/i.test(type)) type = 'L';
+        else if (/pred|forecast|calc/i.test(type)) type = 'pred';
+        else type = (type === 'value' || type === 'data' || type === 'point') ? 'pred' : type;
+
+        points.push({ t, v, type });
+      }
+
+      // 2) Hvis ingenting funnet, prøv spesifikke kjente stier (fallback)
+      if (points.length === 0) {
+        const vals = doc.querySelectorAll('value, values > v, points > point');
+        vals.forEach(el => {
+          const t = parseDateGuess(el.getAttribute('time') || el.getAttribute('date') || el.getAttribute('datetime') || el.querySelector('time')?.textContent);
+          const v = normalizeValueToMeters(parseFloat(el.getAttribute('value') || el.getAttribute('height') || el.querySelector('value')?.textContent), el);
+          if (t && isFinite(v)) points.push({ t, v, type: 'pred' });
         });
-        self.addEventListener('activate', (event) => {
-          event.waitUntil((async () => {
-            const keys = await caches.keys();
-            await Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)));
-            self.clients.claim();
-          })());
-        });
-        self.addEventListener('fetch', (event) => {
-          const url = new URL(event.request.url);
-          // API: network-first
-          if (url.hostname === 'api.sehavniva.no' && url.pathname.endsWith('/tideapi.php')) {
-            event.respondWith((async () => {
-              try {
-                const net = await fetch(event.request);
-                const cache = await caches.open(CACHE_NAME);
-                cache.put(event.request, net.clone());
-                return net;
-              } catch (e) {
-                const cache = await caches.open(CACHE_NAME);
-                const cached = await cache.match(event.request);
-                if (cached) return cached;
-                return new Response(JSON.stringify({ error: 'offline' }), { status: 503, headers: { 'Content-Type': 'application/json' } });
-              }
-            })());
-            return;
-          }
-          // Statiske: cache-first
-          if (PRECACHE.includes(event.request.url) || event.request.mode === 'navigate') {
-            event.respondWith((async () => {
-              const cache = await caches.open(CACHE_NAME);
-              const cached = await cache.match(event.request);
-              if (cached) return cached;
-              try {
-                const net = await fetch(event.request);
-                cache.put(event.request, net.clone());
-                return net;
-              } catch (e) {
-                const root = await cache.match(self.location.href);
-                return root || Response.error();
-              }
-            })());
-            return;
-          }
-        });
-      `;
-      const blob = new Blob([swCode], { type: 'text/javascript' });
-      const swUrl = URL.createObjectURL(blob);
-      navigator.serviceWorker.register(swUrl).catch(console.error);
+      }
+
+      // Sorter og fjern åpenbare duplikater (same minute)
+      points.sort((a, b) => a.t - b.t || a.v - b.v);
+      const dedup = [];
+      const seen = new Set();
+      for (const p of points) {
+        const key = p.t.toISOString().slice(0,16); // til minutt
+        if (seen.has(key)) continue;
+        seen.add(key);
+        dedup.push(p);
+      }
+      return dedup;
     }
-  </script></body>
+
+    function parseDateGuess(s) {
+      if (!s) return null;
+      // Håndter "YYYY-MM-DD HH:mm[:ss]" ved å sette inn 'T'
+      let str = s.trim();
+      if (/^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}(:\d{2})?$/.test(str)) str = str.replace(' ', 'T');
+      // Hvis mangler tidssone, la den tolkes som lokal – vi vil vise i lokal tid uansett
+      const d = new Date(str);
+      if (isNaN(d)) {
+        // Prøv å anta Z
+        const d2 = new Date(str + 'Z');
+        if (!isNaN(d2)) return d2;
+        return null;
+      }
+      return d;
+    }
+
+    // Forsøk å tolke enhet automatisk. Hvis elementer/forfedre sier "cm", konverter til meter.
+    function normalizeValueToMeters(val, el) {
+      if (!isFinite(val) || !el) return val;
+      const unitHints = [];
+      let cur = el;
+      for (let i = 0; i < 5 && cur; i++) {
+        for (const attr of ['unit', 'units', 'enhet']) {
+          const u = cur.getAttribute && cur.getAttribute(attr);
+          if (u) unitHints.push(u);
+        }
+        cur = cur.parentElement;
+      }
+      const hint = unitHints.join(' ').toLowerCase();
+      if (/\bcm\b/.test(hint)) return val / 100;
+      return val; // antar meter
+    }
+
+    function applyFilterAndRender() {
+      if (!allPoints.length || !dataExtent) return;
+
+      let from, to;
+      const now = new Date();
+      if (currentRange === 'today') {
+        from = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+        to   = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+      } else if (currentRange === '7d') {
+        from = now;
+        to = new Date(now.getTime() + 7*24*3600*1000);
+      } else if (currentRange === 'month') {
+        from = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
+        to   = new Date(now.getFullYear(), now.getMonth()+1, 0, 23, 59, 59);
+      } else {
+        from = dataExtent.tMin;
+        to   = dataExtent.tMax;
+      }
+
+      filtered = allPoints.filter(p => p.t >= from && p.t <= to);
+      // Hvis filter gir tomt resultat (f.eks. i dag uten dekning), vis nærmeste 48 timer innenfor datasettet
+      if (filtered.length === 0) {
+        const center = now;
+        const twoDays = 2*24*3600*1000;
+        filtered = allPoints.filter(p => Math.abs(p.t - center) <= twoDays);
+      }
+
+      renderStats();
+      renderTable();
+      renderChart();
+    }
+
+    function renderStats() {
+      if (!filtered.length) {
+        $('#stat-min').textContent = '–';
+        $('#stat-max').textContent = '–';
+        $('#stat-avg').textContent = '–';
+        $('#stat-info').textContent = 'Ingen punkter i valgt tidsrom.';
+        return;
+      }
+      const vs = filtered.map(p => p.v);
+      const vMin = Math.min(...vs);
+      const vMax = Math.max(...vs);
+      const avg = vs.reduce((a, b) => a + b, 0) / vs.length;
+
+      $('#stat-min').textContent = fmtNum(vMin) + ' m';
+      $('#stat-max').textContent = fmtNum(vMax) + ' m';
+      $('#stat-avg').textContent = fmtNum(avg) + ' m';
+
+      const from = filtered[0].t;
+      const to = filtered[filtered.length-1].t;
+      $('#stat-info').textContent = `Punkter: ${filtered.length} • Periode: ${fmtDate(from)} – ${fmtDate(to)}`;
+    }
+
+    function renderTable() {
+      const tbody = $('#table-body');
+      if (!filtered.length) {
+        tbody.innerHTML = `<tr><td colspan="3" class="muted">Ingen data innen valgt periode.</td></tr>`;
+        return;
+      }
+      const rows = filtered.slice(0, 2000).map(p => {
+        const t = fmtDateTime(p.t);
+        const v = fmtNum(p.v) + ' m';
+        const type = p.type === 'H' ? 'Høyvann' : p.type === 'L' ? 'Lavvann' : (p.type === 'pred' ? '' : p.type);
+        return `<tr><td class="nowrap">${t}</td><td>${v}</td><td class="muted">${type || ''}</td></tr>`;
+      });
+      tbody.innerHTML = rows.join('');
+    }
+
+    function renderChart() {
+      const canvas = $('#chart');
+      const wrap = $('#chart-wrap');
+      const dpr = Math.max(1, window.devicePixelRatio || 1);
+      const w = wrap.clientWidth;
+      const h = wrap.clientHeight;
+      if (w === 0 || h === 0) return;
+
+      canvas.width = Math.floor(w * dpr);
+      canvas.height = Math.floor(h * dpr);
+      canvas.style.width = w + 'px';
+      canvas.style.height = h + 'px';
+
+      const ctx = canvas.getContext('2d');
+      ctx.scale(dpr, dpr);
+
+      // Bakgrunn
+      ctx.clearRect(0,0,w,h);
+
+      // Hvis ingen data
+      if (!filtered.length) {
+        ctx.fillStyle = getCSS('--muted');
+        ctx.font = '14px system-ui, -apple-system, Segoe UI, Roboto, Arial';
+        ctx.fillText('Ingen data å vise', 10, 20);
+        return;
+      }
+
+      // Skalaer
+      const tMin = filtered[0].t.getTime();
+      const tMax = filtered[filtered.length-1].t.getTime();
+      let vMin = Math.min(...filtered.map(p => p.v));
+      let vMax = Math.max(...filtered.map(p => p.v));
+      if (vMax === vMin) { vMax += 0.5; vMin -= 0.5; }
+
+      const padL = 46, padR = 12, padT = 16, padB = 26;
+      const plotW = w - padL - padR;
+      const plotH = h - padT - padB;
+
+      // Rutenett
+      ctx.strokeStyle = getCSS('--grid');
+      ctx.lineWidth = 1;
+
+      // Y-aksen ticks (5)
+      const yTicks = niceTicks(vMin, vMax, 5);
+      ctx.beginPath();
+      for (const yv of yTicks) {
+        const y = padT + plotH - (yv - vMin) / (vMax - vMin) * plotH;
+        ctx.moveTo(padL, Math.round(y)+0.5);
+        ctx.lineTo(w - padR, Math.round(y)+0.5);
+      }
+      ctx.stroke();
+
+      // X-aksen ticks (time/dager)
+      const xTicks = timeTicks(new Date(tMin), new Date(tMax), plotW);
+      ctx.beginPath();
+      for (const xt of xTicks) {
+        const x = padL + (xt.getTime() - tMin) / (tMax - tMin) * plotW;
+        ctx.moveTo(Math.round(x)+0.5, padT);
+        ctx.lineTo(Math.round(x)+0.5, h - padB);
+      }
+      ctx.stroke();
+
+      // Akselabels
+      ctx.fillStyle = getCSS('--muted');
+      ctx.font = '12px system-ui, -apple-system, Segoe UI, Roboto, Arial';
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'middle';
+      for (const yv of yTicks) {
+        const y = padT + plotH - (yv - vMin) / (vMax - vMin) * plotH;
+        ctx.fillText(fmtNum(yv), padL - 6, y);
+      }
+
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      for (const xt of xTicks) {
+        const x = padL + (xt.getTime() - tMin) / (tMax - tMin) * plotW;
+        ctx.fillText(fmtTickDate(xt, tMin, tMax), x, h - padB + 6);
+      }
+
+      // Kurve
+      ctx.strokeStyle = getCSS('--accent');
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      filtered.forEach((p, i) => {
+        const x = padL + (p.t.getTime() - tMin) / (tMax - tMin) * plotW;
+        const y = padT + plotH - (p.v - vMin) / (vMax - vMin) * plotH;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+
+      // Markér H/L hvis finnes
+      const hasHL = filtered.some(p => p.type === 'H' || p.type === 'L');
+      if (hasHL) {
+        for (const p of filtered) {
+          if (p.type !== 'H' && p.type !== 'L') continue;
+          const x = padL + (p.t.getTime() - tMin) / (tMax - tMin) * plotW;
+          const y = padT + plotH - (p.v - vMin) / (vMax - vMin) * plotH;
+          ctx.fillStyle = p.type === 'H' ? getCSS('--good') : getCSS('--bad');
+          ctx.beginPath();
+          ctx.arc(x, y, 3, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+    }
+
+    // Utils
+    function fmtNum(n) { return (Math.round(n * 100) / 100).toLocaleString('nb-NO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+    function fmtDate(d) { return d.toLocaleDateString('nb-NO'); }
+    function fmtDateTime(d) {
+      return d.toLocaleString('nb-NO', {
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit'
+      }).replace(',', '');
+    }
+    function fmtTickDate(d, tMin, tMax) {
+      const spanDays = (tMax - tMin) / (1000*3600*24);
+      if (spanDays <= 2) return d.toLocaleTimeString('nb-NO', { hour: '2-digit' });
+      return d.toLocaleDateString('nb-NO', { day: '2-digit', month: '2-digit' });
+    }
+    function getCSS(varName) { return getComputedStyle(document.documentElement).getPropertyValue(varName).trim(); }
+    function debounce(fn, ms) {
+      let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+    }
+    function niceTicks(min, max, count=5) {
+      const span = max - min;
+      if (span === 0) return [min];
+      const step = Math.pow(10, Math.floor(Math.log10(span / count)));
+      const err = (count * step) / span;
+      let niceStep = step;
+      if (err <= 0.15) niceStep = step * 10;
+      else if (err <= 0.35) niceStep = step * 5;
+      else if (err <= 0.75) niceStep = step * 2;
+      const ticks = [];
+      const start = Math.ceil(min / niceStep) * niceStep;
+      for (let v = start; v <= max; v += niceStep) ticks.push(+v.toFixed(6));
+      return ticks;
+    }
+    function timeTicks(d0, d1, widthPx) {
+      const ms = d1 - d0;
+      const approxLabels = Math.max(3, Math.floor(widthPx / 110));
+      const targetStep = ms / approxLabels;
+
+      const steps = [
+        5*60*1000, 10*60*1000, 15*60*1000, 30*60*1000,
+        60*60*1000, 2*60*60*1000, 3*60*60*1000, 6*60*60*1000, 12*60*60*1000,
+        24*60*60*1000, 2*24*60*60*1000, 3*24*60*60*1000, 7*24*60*60*1000
+      ];
+      let step = steps[0];
+      for (const s of steps) { if (s >= targetStep) { step = s; break; } }
+      const ticks = [];
+      const start = alignTime(d0, step);
+      for (let t = +start; t <= +d1 + 1; t += step) ticks.push(new Date(t));
+      return ticks;
+    }
+    function alignTime(d, stepMs) {
+      const t = +d;
+      if (stepMs >= 24*3600*1000) {
+        const dd = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+        return dd;
+      }
+      return new Date(Math.floor(t / stepMs) * stepMs);
+    }
+  </script>
+</body>
 </html>
