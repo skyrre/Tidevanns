@@ -3,13 +3,12 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
   <title>Tidevann – Bergen (statisk)</title>  <base href="/Tidevanns/">
-  <meta name="description" content="Statisk tidevannsgraf for Bergen med lokal Tidevann.xml, pan, og akseverdi i et mørkt tema." />
+  <meta name="description" content="Statisk tidevannsgraf for Bergen med lokal Tidevann.xml, pan, nå-linje og mørkt tema." />
   <link rel="canonical" href="https://skyrre.github.io/Tidevanns/" />
   <meta name="theme-color" content="#0d1117" />
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="color-scheme" content="dark" />  <style>
-    /* Navneprefiks tv-* for å unngå kollisjoner med eksterne tema */
     html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; background: #0d1117; }
     .tv-root {
       --bg: #0d1117; --fg: #c9d1d9; --muted: #8b949e; --accent: #58a6ff;
@@ -21,7 +20,7 @@
 
       color-scheme: dark;
       background: var(--bg); color: var(--fg);
-      min-height: 100dvh;
+      min-height: 100dvh; height: 100dvh;
       padding-top: env(safe-area-inset-top);
       padding-bottom: env(safe-area-inset-bottom);
       display: flex; flex-direction: column;
@@ -51,12 +50,12 @@
     .tv-main { flex: 1; display: flex; flex-direction: column; min-height: 0; }
     .tv-card {
       background: var(--card); border: 1px solid var(--border); border-radius: 14px; overflow: clip; box-shadow: var(--shadow);
-      display: flex; flex-direction: column; min-height: 0; /* gjør at innhold kan vokse med flex */
+      display: flex; flex-direction: column; min-height: 0;
     }
     .tv-card h2 { font-size: 1rem; margin: 0; padding: 10px 14px; border-bottom: 1px solid var(--border); }
     .tv-pad { flex: 1; display: flex; flex-direction: column; min-height: 0; padding: 10px 12px; }
 
-    .tv-chart-wrap { position: relative; width: 100%; flex: 1; min-height: 240px; }
+    .tv-chart-wrap { position: relative; width: 100%; /* dynamisk høyde settes i JS */ }
     .tv-chart { width: 100%; height: 100%; display: block; }
 
     .tv-legend { display: flex; gap: 14px; align-items: center; color: var(--muted); font-size: 0.9rem; margin-top: 6px; }
@@ -68,14 +67,16 @@
     .tv-stat .tv-label { color: var(--muted); font-size: 0.85rem; }
     .tv-stat .tv-val { font-weight: 700; font-size: 1.05rem; }
 
-    /* Skjul stats på små/kompakte skjermer for å unngå scrolling */
-    @media (max-width: 480px), (max-height: 680px) {
-      .tv-stat-grid { display: none; }
+    /* Kompakt mobil: bruk mer av høyden og skjul det ikke-nødvendige */
+    @media (max-width: 480px), (max-height: 700px) {
       .tv-sub { display: none; }
-      .tv-controls { margin-top: 4px; }
-      .tv-container { padding: 8px 12px; }
+      .tv-stat-grid { display: none; }
       .tv-card h2 { display: none; }
+      .tv-container { padding: 8px 10px; }
       .tv-pad { padding: 8px; }
+    }
+    @media (max-height: 640px) {
+      .tv-footer { display: none; }
     }
 
     .tv-footer { padding: 10px 16px 16px; color: var(--muted); text-align: center; font-size: 0.9rem; }
@@ -112,7 +113,6 @@
     <div class="tv-pad">
       <div class="tv-chart-wrap" id="chart-wrap">
         <canvas class="tv-chart" id="chart" aria-label="Tidevannsgraf"></canvas>
-        <!-- Tooltip fjernet (mobil), vi viser heller tall ved Y-aksen -->
       </div>
       <div class="tv-legend">
         <span><span class="tv-swatch"></span>Vannstand (m)</span>
@@ -138,6 +138,7 @@
     let viewFrom = null, viewTo = null;
     let viewLenMs = 24 * 3600e3; // 24t
     let currentRangeKey = '1d';
+    const PAGE_LOAD_TS = Date.now(); // "nå-linje" ved oppstart
 
     const $ = (s) => document.querySelector(s);
     const $$ = (s) => Array.from(document.querySelectorAll(s));
@@ -168,8 +169,12 @@
       // Dra for å panorere
       setupDragPan();
 
+      // Layouthåndtering (fyll mer av skjermen uten scrolling)
+      layoutHeights();
+      window.addEventListener('resize', debounce(() => { layoutHeights(); renderChart(); }, 80));
+      window.addEventListener('orientationchange', () => setTimeout(() => { layoutHeights(); renderChart(); }, 100));
+
       loadXml();
-      window.addEventListener('resize', debounce(renderChart, 80));
     });
 
     async function loadXml() {
@@ -198,7 +203,7 @@
         $$('#dataset-meta').textContent = `Punkter: $${allPoints.length} • Periode: ${fmtDate(tMin)} – ${fmtDate(tMax)}`;
 
         viewLenMs = rangeToMs(currentRangeKey);
-        placeWindowAroundNow();
+        placeWindowAroundNow(); // legge "nå" i venstrekant ved oppstart
         renderAll();
       } catch (err) {
         console.error(err);
@@ -215,10 +220,11 @@
 
     function placeWindowAroundNow() {
       if (!dataExtent) return;
-      const now = new Date();
-      let start = now.getTime();
+      // Start vinduet ved "nå" → til høyre viewLenMs
+      let start = PAGE_LOAD_TS;
       let end = start + viewLenMs;
 
+      // Klem til datasettet
       const min = dataExtent.tMin.getTime();
       const max = dataExtent.tMax.getTime();
       if (end > max) { end = max; start = Math.max(min, end - viewLenMs); }
@@ -298,7 +304,6 @@
       const from = viewFrom, to = viewTo;
       const lo = lowerBound(allPoints, from.getTime());
       const hi = upperBound(allPoints, to.getTime());
-      // ta med ett punkt på hver side for bedre interpolasjon
       return allPoints.slice(Math.max(0, lo - 1), Math.min(allPoints.length, hi + 1));
     }
 
@@ -361,7 +366,7 @@
       const xOf = (t) => pad.L + (t - tMin) / (tMax - tMin) * plotW;
       const yOf = (v) => pad.T + plotH - (v - vMin) / (vMax - vMin) * plotH;
 
-      // Bakgrunn (samme mørke som kortet – ikke grønn)
+      // Bakgrunn (samme mørke)
       ctx.fillStyle = getCSS('--card');
       ctx.fillRect(pad.L, pad.T, plotW, plotH);
 
@@ -453,7 +458,6 @@
       const vAxis = interpolateAtTime(viewFrom.getTime(), pts);
       if (Number.isFinite(vAxis)) {
         const y = yOf(vAxis);
-        // liten markør på aksen
         ctx.strokeStyle = 'rgba(255,255,255,0.6)';
         ctx.lineWidth = 2;
         ctx.beginPath();
@@ -461,18 +465,53 @@
         ctx.lineTo(pad.L + 4, y);
         ctx.stroke();
 
-        // etikett inne i plottet
         const label = `${vAxis.toFixed(1)} m`;
         drawLabel(ctx, pad.L + 8, y - 10, label);
       }
+
+      // Nå-linje (basert på tidspunkt ved sidelast): synlig kun hvis innenfor visning
+      if (PAGE_LOAD_TS >= tMin && PAGE_LOAD_TS <= tMax) {
+        const xNow = xOf(PAGE_LOAD_TS);
+        ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([6, 4]);
+        ctx.beginPath();
+        ctx.moveTo(Math.round(xNow) + 0.5, pad.T);
+        ctx.lineTo(Math.round(xNow) + 0.5, pad.T + plotH);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        // liten “Nå”-etikett øverst
+        drawLabel(ctx, Math.min(xNow + 8, w - pad.R - 60), pad.T + 6, 'Nå');
+      }
     }
 
-    // Interpoler verdi ved tid t (ms) basert på nærmeste datapunkter i pts (sortert)
+    // Dynamisk høyde: bruk mer av skjermen uten scrolling
+    function layoutHeights() {
+      const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+      const header = document.querySelector('.tv-header');
+      const footer = document.querySelector('.tv-footer');
+      const chartWrap = document.getElementById('chart-wrap');
+      const cardPad = document.querySelector('.tv-pad');
+      const legend = document.querySelector('.tv-legend');
+      const stats = document.querySelector('.tv-stat-grid');
+
+      const headerH = header ? header.getBoundingClientRect().height : 0;
+      const footerH = footer && getComputedStyle(footer).display !== 'none' ? footer.getBoundingClientRect().height : 0;
+      const padTopBottom = 16 + 16; // ca. container topp/bunn padding totalt
+      const cardExtras = (legend && getComputedStyle(legend).display !== 'none' ? legend.getBoundingClientRect().height + 8 : 0)
+                       + (stats && getComputedStyle(stats).display !== 'none' ? stats.getBoundingClientRect().height + 8 : 0);
+
+      // Litt luft: 8px
+      const available = vh - headerH - footerH - padTopBottom - cardExtras - 8;
+      const minH = 240;
+      chartWrap.style.height = Math.max(minH, available) + 'px';
+    }
+
+    // Interpoler verdi ved tid t (ms)
     function interpolateAtTime(t, pts) {
       if (!pts.length) return NaN;
       if (t <= pts[0].t.getTime()) return pts[0].v;
       if (t >= pts[pts.length-1].t.getTime()) return pts[pts.length-1].v;
-      // finn nabopar
       let i = 1;
       while (i < pts.length && pts[i].t.getTime() < t) i++;
       const p1 = pts[i-1], p2 = pts[i];
@@ -490,17 +529,12 @@
       const h = 18;
       const rx = 8;
       const yTop = y - h + 2;
-      // bakgrunn
       ctx.fillStyle = getCSS('--tooltip-bg');
-      roundRect(ctx, x, yTop, w, h, rx);
-      ctx.fill();
+      roundRect(ctx, x, yTop, w, h, rx); ctx.fill();
       ctx.strokeStyle = getCSS('--tooltip-border');
-      ctx.lineWidth = 1;
-      ctx.stroke();
-      // tekst
+      ctx.lineWidth = 1; ctx.stroke();
       ctx.fillStyle = getCSS('--fg');
-      ctx.textBaseline = 'middle';
-      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
       ctx.fillText(text, x + paddingX, yTop + h / 2);
     }
 
