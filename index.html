@@ -37,7 +37,7 @@
     .tv-sub { color: var(--muted); font-size: 0.95rem; margin-bottom: 10px; }
 
     .tv-controls {
-      display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0 10px;
+      display: flex; flex-wrap: wrap; gap: 8px; alignitems: center; margin: 8px 0 10px;
       justify-content: center;
     }
     .tv-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; justify-content: center; }
@@ -244,7 +244,7 @@
 
     function setupDragPan() {
       const canvas = $('#chart');
-      const wrap = $('#chart-wrap']);
+      const wrap = $('#chart-wrap'); // FIX: fjernet ekstra ]
       let dragging = false;
       let dragStartX = 0;
       let startFrom = 0, startTo = 0;
