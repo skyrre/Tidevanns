@@ -97,7 +97,7 @@
       .controls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .grid2 { grid-template-columns: 1fr; }
     }
-  </style>  <!-- Chart.js, date-adapter og zoom -->  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>  <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-adapter-date-fns/3.0.0/chartjs-adapter-date-fns.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>  <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-zoom/2.0.1/chartjs-plugin-zoom.umd.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script></head>
+  </style>  <!-- Kun Chart.js (ingen dato-adapter nødvendig i denne versjonen) -->  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>  <!-- Zoom-plugin er valgfri; fungerer også på linear-akse -->  <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-zoom/2.0.1/chartjs-plugin-zoom.umd.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script></head>
 <body>
   <div class="app">
     <header>
@@ -150,8 +150,8 @@
   <div class="control">
     <label for="source">Datakilde</label>
     <select id="source">
-      <option value="demo">Demo (syntetisk)</option>
-      <option value="kartverket" selected>Kartverket (Se havnivå)</option>
+      <option value="demo" selected>Demo (syntetisk)</option>
+      <option value="kartverket">Kartverket (Se havnivå)</option>
     </select>
   </div>
   <div class="control">
@@ -192,45 +192,18 @@
         <div class="item"><span class="k">Maks høyde</span><span class="v" id="maxVal">–</span></div>
         <div class="item"><span class="k">Min høyde</span><span class="v" id="minVal">–</span></div>
         <div class="item"><span class="k">Antall flo/fjære</span><span class="v" id="countVal">–</span></div>
-        <div class="item"><span class="k">Datakilde</span><span class="v" id="sourceLbl">Kartverket</span></div>
+        <div class="item"><span class="k">Datakilde</span><span class="v" id="sourceLbl">Demo</span></div>
       </div>
     </div>
   </div>
 </section>
 
 <p class="small" style="margin-top:10px;">
-  Kilde: Kartverket – Se havnivå (ved valgt datakilde).
+  Kilde: Kartverket – Se havnivå (ved valgt datakilde). Denne versjonen trenger ikke dato-adapter for grafen.
 </p>
   </div>  <script>
     // --- Konfigurasjon og verktøy ---
     const SEHAVNIVA_BASE = "https://api.sehavniva.no/tideapi.php";
-
-    function buildKartverketUrls({ lat, lon, fromISO, toISO, intervalMin }) {
-      const baseParams = {
-        lat: lat.toFixed(5),
-        lon: lon.toFixed(5),
-        fromtime: fromISO.slice(0,16),
-        totime: toISO.slice(0,16),
-        interval: String(intervalMin),
-        refcode: "CD",
-        file: "json",
-      };
-      const variants = [
-        { ...baseParams, datatype: "prediction", language: "nb" },
-        { ...baseParams, datatype: "predictions", language: "nb" },
-        { ...baseParams, datatype: "waterlevel", language: "nb" },
-        { ...baseParams, datatype: "tidetable", language: "nb" },
-        { ...baseParams, datatype: "prediction", lang: "nb" },
-        { ...baseParams, datatype: "predictions", lang: "nb" },
-        { ...baseParams, datatype: "waterlevel", lang: "nb" },
-        { ...baseParams, datatype: "tidetable", lang: "nb" },
-        { ...baseParams, datatype: "prediction", language: "nb", tzone: "utc" },
-        { ...baseParams, datatype: "predictions", language: "nb", tzone: "utc" },
-        { ...baseParams, datatype: "prediction", language: "nb", place: "Bergen" },
-        { ...baseParams, datatype: "predictions", language: "nb", place: "Bergen" },
-      ];
-      return variants.map(v => `${SEHAVNIVA_BASE}?${new URLSearchParams(v).toString()}`);
-    }
 
     const store = {
       set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch(_){} },
@@ -270,17 +243,10 @@
     els.days.value = store.get("days", "14");
     els.interval.value = store.get("interval", "15");
     els.loc.value = store.get("loc", "bergen|60.39299|5.32415");
-    els.source.value = store.get("source", "kartverket");
+    els.source.value = store.get("source", "demo");
     els.tz.value = store.get("tz", "local");
 
-    function toISO(dt) {
-      const y = dt.getFullYear();
-      const m = String(dt.getMonth()+1).padStart(2,'0');
-      const d = String(dt.getDate()).padStart(2,'0');
-      const hh = String(dt.getHours()).padStart(2,'0');
-      const mm = String(dt.getMinutes()).padStart(2,'0');
-      return `${y}-${m}-${d}T${hh}:${mm}:00`;
-    }
+    // Formattere
     function fmtDate(dt, tzMode) {
       const opts = { day:'2-digit', month:'2-digit', year:'numeric' };
       return new Intl.DateTimeFormat(undefined, {...opts, timeZone: tzMode==='utc'?'UTC':undefined}).format(dt);
@@ -290,7 +256,23 @@
       return new Intl.DateTimeFormat(undefined, {...opts, timeZone: tzMode==='utc'?'UTC':undefined}).format(dt);
     }
     function fmtNum(n) { return `${n.toFixed(2)} m`; }
+    function fmtTick(ts, tzMode) {
+      const d = new Date(ts);
+      return new Intl.DateTimeFormat(undefined, {
+        day:'2-digit', month:'2-digit', timeZone: tzMode==='utc'?'UTC':undefined
+      }).format(d);
+    }
 
+    function toISO(dt) {
+      const y = dt.getFullYear();
+      const m = String(dt.getMonth()+1).padStart(2,'0');
+      const d = String(dt.getDate()).padStart(2,'0');
+      const hh = String(dt.getHours()).padStart(2,'0');
+      const mm = String(dt.getMinutes()).padStart(2,'0');
+      return `${y}-${m}-${d}T${hh}:${mm}:00`;
+    }
+
+    // Demo-generator
     function generateDemoTide({ start, minutes, stepMin }) {
       const pts = [];
       const twoPi = Math.PI * 2;
@@ -302,11 +284,75 @@
         const s2 = A_S2 * Math.sin(twoPi * hours / T_S2 + 0.4);
         const k1 = A_K1 * Math.sin(twoPi * hours / T_K1 + 1.2);
         const h = BASE + m2 + s2 + k1;
-        pts.push({ t: new Date(start.getTime() + i*60000), h });
+        const t = new Date(start.getTime() + i*60000);
+        pts.push({ t, h, x: t.getTime(), y: h });
       }
       return pts;
     }
 
+    // Kartverket URL
+    function buildKartverketUrl({ lat, lon, fromISO, toISO, intervalMin }) {
+      const p = new URLSearchParams({
+        lat: lat.toFixed(5),
+        lon: lon.toFixed(5),
+        fromtime: fromISO.slice(0,16),
+        totime: toISO.slice(0,16),
+        interval: String(intervalMin),
+        datatype: 'prediction',
+        refcode: 'CD',
+        lang: 'nb',
+        file: 'json'
+      });
+      return `${SEHAVNIVA_BASE}?${p.toString()}`;
+    }
+
+    // Les Kartverket-respons og konverter til meter
+    function adaptKartverketJson(json) {
+      if (Array.isArray(json?.predictions)) {
+        const raw = json.predictions
+          .map(e => ({ t: new Date(e.time), v: parseFloat(e.value) }))
+          .filter(o => isFinite(o.v) && !isNaN(o.t));
+        if (!raw.length) return [];
+        const maxVal = Math.max(...raw.map(o => o.v));
+        const factor = maxVal > 20 ? 0.01 : 1; // cm -> m hvis tallene er store
+        return raw.map(o => {
+          const h = o.v * factor;
+          const ts = o.t.getTime();
+          return { t: o.t, h, x: ts, y: h };
+        });
+      }
+      // Fallback: andre strukturer
+      const candidates = Array.isArray(json?.data) ? json.data
+        : json?.tideTable?.tideTableEntries || Array.isArray(json) ? json : [];
+      const pts = candidates.map(e => {
+        const timeStr = e.time || e.timestamp || (e.date && e.time ? `${e.date}T${e.time}` : e.date);
+        const t = new Date(timeStr);
+        const v = parseFloat(e.value);
+        if (!isFinite(v) || isNaN(t)) return null;
+        const ts = t.getTime();
+        return { t, h: v, x: ts, y: v };
+      }).filter(Boolean);
+      // Heuristisk cm->m
+      if (pts.length) {
+        const maxVal = Math.max(...pts.map(p => p.h));
+        if (maxVal > 20) {
+          pts.forEach(p => { p.h = p.h * 0.01; p.y = p.h; });
+        }
+      }
+      return pts;
+    }
+
+    async function fetchKartverket({ lat, lon, start, end, stepMin }) {
+      const url = buildKartverketUrl({ lat, lon, fromISO: toISO(start), toISO: toISO(end), intervalMin: stepMin });
+      const r = await fetch(url, { headers: { 'Accept': 'application/json' }, cache: 'no-cache' });
+      if (!r.ok) throw new Error(`Kartverket svarte ${r.status}`);
+      const json = await r.json();
+      const pts = adaptKartverketJson(json);
+      if (!pts.length) throw new Error('Tomt datasett fra Kartverket');
+      return pts;
+    }
+
+    // Finn lokale maks/min
     function findHighLows(pts) {
       const res = [];
       for (let i=1; i<pts.length-1; i++) {
@@ -317,62 +363,14 @@
       return res;
     }
 
-    function adaptKartverketJson(json) {
-      if (Array.isArray(json?.predictions)) {
-        return json.predictions.map(e => ({ t: new Date(e.time), h: parseFloat(e.value) }))
-          .filter(p => isFinite(p.h) && !isNaN(p.t));
-      }
-      if (Array.isArray(json?.data)) {
-        return json.data.map(e => ({ t: new Date(e.time || e.timestamp), h: parseFloat(e.value) }))
-          .filter(p => isFinite(p.h) && !isNaN(p.t));
-      }
-      if (json?.tideTable?.tideTableEntries?.length) {
-        return json.tideTable.tideTableEntries.map(e => ({ t: new Date(e.time || `${e.date}T${e.time}`), h: parseFloat(e.value) }))
-          .filter(p => isFinite(p.h) && !isNaN(p.t));
-      }
-      if (Array.isArray(json)) {
-        return json.map(e => ({ t: new Date(e.time || e.timestamp || e.date), h: parseFloat(e.value) }))
-          .filter(p => isFinite(p.h) && !isNaN(p.t));
-      }
-      throw new Error("Ukjent responsformat fra Kartverket");
-    }
-
-    async function fetchKartverket({ lat, lon, start, end, stepMin }) {
-      const urls = buildKartverketUrls({ lat, lon, fromISO: toISO(start), toISO: toISO(end), intervalMin: stepMin });
-      const cacheKey = `kartverket:${urls[0]}`;
-      let lastError = null;
-
-      for (const url of urls) {
-        try {
-          const r = await fetch(url, { cache: 'no-cache' });
-          if (!r.ok) throw new Error(`API-feil (${r.status})`);
-          const json = await r.json();
-          const pts = adaptKartverketJson(json);
-          if (!pts.length) throw new Error('Tomt datasett');
-          store.set(cacheKey, { savedAt: Date.now(), url, data: json });
-          return pts;
-        } catch (err) {
-          lastError = err;
-        }
-      }
-      const cached = store.get(cacheKey);
-      if (cached?.data) {
-        try {
-          const pts = adaptKartverketJson(cached.data);
-          if (pts.length) return pts;
-        } catch(e){}
-      }
-      throw lastError || new Error('Kunne ikke hente fra Kartverket');
-    }
-
+    // Chart (linear x-akse, ingen dato-adapter kreves)
     let chart;
-    function ensureChart() {
+    function ensureChart(tzMode) {
       if (chart) return chart;
       const ctx = document.getElementById("chart");
       chart = new Chart(ctx, {
         type: 'line',
         data: {
-          labels: [],
           datasets: [
             {
               label: 'Tidehøyde (m)',
@@ -410,9 +408,11 @@
         options: {
           scales: {
             x: {
-              type: 'time',
-              time: { unit: 'day', tooltipFormat: 'dd.MM HH:mm' },
-              ticks: { color: '#9aa0a6' },
+              type: 'linear',
+              ticks: {
+                color: '#9aa0a6',
+                callback: (value) => fmtTick(value, tzMode)
+              },
               grid: { color: 'rgba(255,255,255,0.06)' }
             },
             y: {
@@ -425,6 +425,14 @@
             legend: { display: false },
             tooltip: {
               callbacks: {
+                title: (items) => {
+                  if (!items.length) return '';
+                  const ts = items[0].parsed.x;
+                  const d = new Date(ts);
+                  const date = fmtDate(d, tzMode);
+                  const time = fmtTime(d, tzMode);
+                  return `${date} ${time}`;
+                },
                 label: (c) => {
                   const y = c.parsed.y;
                   if (typeof y === 'number') return ` ${y.toFixed(2)} m`;
@@ -451,12 +459,16 @@
       return chart;
     }
 
-    function updateChart(pts, highs, lows) {
-      const c = ensureChart();
-      c.data.labels = pts.map(p => p.t);
-      c.data.datasets[0].data = pts.map(p => ({x: p.t, y: p.h}));
-      c.data.datasets[1].data = highs.map(p => ({ x: p.t, y: p.h }));
-      c.data.datasets[2].data = lows.map(p => ({ x: p.t, y: p.h }));
+    function updateChart(pts, highs, lows, tzMode) {
+      const c = ensureChart(tzMode);
+      const xs = pts.map(p => p.x);
+      c.options.scales.x.min = Math.min(...xs);
+      c.options.scales.x.max = Math.max(...xs);
+      c.options.scales.x.ticks.callback = (value) => fmtTick(value, tzMode);
+
+      c.data.datasets[0].data = pts.map(p => ({ x: p.x, y: p.h }));
+      c.data.datasets[1].data = highs.map(p => ({ x: p.x, y: p.h }));
+      c.data.datasets[2].data = lows.map(p => ({ x: p.x, y: p.h }));
       c.update();
     }
 
@@ -464,12 +476,12 @@
       const list = els.hlList;
       list.innerHTML = '';
       const items = [...highs.map(h => ({...h, type: 'Flo'})), ...lows.map(l => ({...l, type: 'Fjære'}))]
-        .sort((a,b) => a.t - b.t);
+        .sort((a,b) => a.x - b.x);
       for (const it of items) {
         const row = document.createElement('div');
         row.className = 'item';
         row.innerHTML = `<span class="k">${it.type}</span>
-                         <span class="v">${fmtDate(it.t, tzMode)} ${fmtTime(it.t, tzMode)} – ${fmtNum(it.h)}</span>`;
+                         <span class="v">${fmtDate(new Date(it.x), tzMode)} ${fmtTime(new Date(it.x), tzMode)} – ${fmtNum(it.h)}</span>`;
         list.appendChild(row);
       }
       els.countVal.textContent = `${highs.length} flo | ${lows.length} fjære`;
@@ -482,6 +494,7 @@
     }
 
     async function refresh() {
+      // Persist valg
       store.set("start", els.start.value);
       store.set("days", els.days.value);
       store.set("interval", els.interval.value);
@@ -496,7 +509,7 @@
       const tzMode = els.tz.value;
 
       const startValue = els.start.value || todayLocalISODate();
-      if (!els.start.value) els.start.value = startValue;
+      if (!els.start.value) els.start.value = startValue; // guard for iOS
       const startDate = new Date(startValue + 'T00:00:00');
       const endDate = new Date(startDate.getTime() + days*24*3600*1000);
       els.periodLbl.textContent = `${fmtDate(startDate, tzMode)} – ${fmtDate(new Date(endDate.getTime()-60000), tzMode)}`;
@@ -521,7 +534,7 @@
         els.maxVal.textContent = fmtNum(Math.max(...pts.map(p => p.h)));
         els.minVal.textContent = fmtNum(Math.min(...pts.map(p => p.h)));
 
-        updateChart(pts, highs, lows);
+        updateChart(pts, highs, lows, tzMode);
         updateHLList(highs, lows, tzMode);
 
         if (els.source.value === 'kartverket') {
@@ -529,10 +542,11 @@
         }
       } catch (err) {
         console.error(err);
+        // Fallback: demo uansett, men vis tydelig beskjed
         const totalMin = Math.round((endDate - startDate)/60000);
         const pts = generateDemoTide({ start: startDate, minutes: totalMin, stepMin });
         const highsLows = findHighLows(pts);
-        updateChart(pts, highsLows.filter(x=>x.type==='flo'), highsLows.filter(x=>x.type==='fjære'));
+        updateChart(pts, highsLows.filter(x=>x.type==='flo'), highsLows.filter(x=>x.type==='fjære'), tzMode);
         updateHLList(highsLows.filter(x=>x.type==='flo'), highsLows.filter(x=>x.type==='fjære'), tzMode);
         els.maxVal.textContent = fmtNum(Math.max(...pts.map(p => p.h)));
         els.minVal.textContent = fmtNum(Math.min(...pts.map(p => p.h)));
@@ -540,6 +554,7 @@
       }
     }
 
+    // Nettverksstatus
     function updateNetChip() {
       els.netChip.style.display = navigator.onLine ? 'none' : 'inline-flex';
       els.netChip.textContent = navigator.onLine ? '' : 'Frakoblet';
@@ -565,27 +580,27 @@
 
     els.btnRefresh.addEventListener('click', refresh);
     els.btnZoomReset.addEventListener('click', () => {
-      if (chart && chart.resetZoom) chart.resetZoom();
+      if (window.chart && window.chart.resetZoom) window.chart.resetZoom();
       refresh();
     });
 
+    // Første last
     refresh();
 
-    // Innebygd Service Worker (én-fil)
+    // Service Worker (bump versjon for å invalidere gammel cache)
     if ('serviceWorker' in navigator) {
       const swCode = `
-        const CACHE_NAME = 'tide-bergen-v1';
+        const CACHE_NAME = 'tide-bergen-v2';
         const PRECACHE = [
           self.location.href,
           'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js',
-          'https://cdnjs.cloudflare.com/ajax/libs/chartjs-adapter-date-fns/3.0.0/chartjs-adapter-date-fns.min.js',
           'https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-zoom/2.0.1/chartjs-plugin-zoom.umd.min.js'
         ];
 
         self.addEventListener('install', (event) => {
           event.waitUntil((async () => {
             const cache = await caches.open(CACHE_NAME);
-            try { await cache.addAll(PRECACHE); } catch (e) { /* noen ressurser kan være opaque */ }
+            try { await cache.addAll(PRECACHE); } catch (e) { /* kan være opaque */ }
             self.skipWaiting();
           })());
         });
