@@ -3,11 +3,11 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Tidevann – Bergen (statisk)</title>  <base href="/Tidevanns/">
-  <meta name="description" content="Statisk tidevannsgraf for Bergen med lokal Tidevann.xml, pan/hover i et klassisk mørkt tema." />
-  <link rel="canonical" href="https://skyrre.github.io/Tidevanns/" />  <style>
-    :root {
-      color-scheme: dark; /* Tving mørk rendering for UA-elementer */
-      /* Klassisk mørkt tema */
+  <meta name="description" content="Statisk tidevannsgraf for Bergen med lokal Tidevann.xml, pan/hover i et robust mørkt tema." />
+  <link rel="canonical" href="https://skyrre.github.io/Tidevanns/" />
+  <meta name="color-scheme" content="dark">  <style>
+    /* Alt er navngitt med tv-* for å unngå kollisjon med globale stiler (f.eks. .btn, .card) */
+    .tv-root {
       --bg: #0d1117;
       --fg: #c9d1d9;
       --muted: #8b949e;
@@ -16,37 +16,38 @@
       --card: #0f141a;
       --border: #30363d;
 
-      /* Maritime farger (lysest øverst → mørkere nederst) */
-      --sea-top: #3b8fc7;     /* lysere blå i toppen */
-      --sea-bottom: #0b2f49;  /* mørkere blå nederst */
-      --land-top: #173329;    /* diskret grønnlig over kurven */
+      --sea-top: #3b8fc7;   /* lysere blå i toppen */
+      --sea-bottom: #0b2f49;/* mørkere blå nederst */
+      --land-top: #173329;  /* diskret grønnlig over kurven */
       --land-bottom: #0e211c;
 
       --tooltip-bg: rgba(13, 17, 23, 0.97);
       --tooltip-border: rgba(255,255,255,0.08);
       --shadow: 0 6px 24px rgba(0,0,0,0.35);
-    }
 
-    * { box-sizing: border-box; }
-    html, body { margin: 0; padding: 0; height: 100%; background: var(--bg); color: var(--fg); }
-    body {
+      color-scheme: dark;
+      background: var(--bg);
+      color: var(--fg);
+      min-height: 100vh;
       font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
       line-height: 1.45;
     }
-    header, main { width: min(1100px, 100%); margin: 0 auto; padding: 16px; }
-    header { padding-top: 20px; }
-    h1 { font-size: 1.6rem; margin: 0 0 6px; }
-    .sub { color: var(--muted); font-size: 0.95rem; margin-bottom: 14px; }
+    .tv-root *, .tv-root *::before, .tv-root *::after { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: #000 !important; } /* dekk ev. globale tema */
+    .tv-container { width: min(1100px, 100%); margin: 0 auto; padding: 16px; }
+    .tv-header { padding-top: 20px; }
+    .tv-h1 { font-size: 1.6rem; margin: 0 0 6px; }
+    .tv-sub { color: var(--muted); font-size: 0.95rem; margin-bottom: 14px; }
 
-    .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 10px 0 16px; }
-    .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-    .spacer { flex: 1; }
+    .tv-controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 10px 0 16px; }
+    .tv-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .tv-spacer { flex: 1; }
 
-    button.btn {
+    .tv-btn {
       appearance: none;
       border: 1px solid var(--border);
-      background: #161b22;           /* mørk, ikke kullsvart */
-      color: var(--fg);              /* lys tekst */
+      background: #161b22;
+      color: var(--fg);
       padding: 8px 12px;
       border-radius: 10px;
       cursor: pointer;
@@ -54,98 +55,99 @@
       box-shadow: var(--shadow);
       transition: border-color .15s ease, background-color .15s ease, color .15s ease;
     }
-    button.btn:hover { border-color: #3a434d; background: #19202a; }
-    button.btn[aria-pressed="true"] {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px rgba(88,166,255,0.18), var(--shadow);
-    }
-    button.icon { width: 40px; height: 40px; display: inline-grid; place-items: center; font-size: 18px; padding: 0; }
+    .tv-btn:hover { border-color: #3a434d; background: #19202a; }
+    .tv-btn[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(88,166,255,0.18), var(--shadow); }
+    .tv-btn-icon { width: 40px; height: 40px; display: inline-grid; place-items: center; font-size: 18px; padding: 0; }
 
-    .card {
+    .tv-card {
       background: var(--card);
       border: 1px solid var(--border);
       border-radius: 14px;
       overflow: clip;
       box-shadow: var(--shadow);
     }
-    .card h2 { font-size: 1rem; margin: 0; padding: 12px 14px; border-bottom: 1px solid var(--border); }
-    .pad { padding: 12px; }
+    .tv-card h2 { font-size: 1rem; margin: 0; padding: 12px 14px; border-bottom: 1px solid var(--border); }
+    .tv-pad { padding: 12px; }
 
-    #chart-wrap { position: relative; width: 100%; height: 420px; }
-    #chart { width: 100%; height: 100%; display: block; }
+    .tv-legend { display: flex; gap: 14px; align-items: center; color: var(--muted); font-size: 0.9rem; margin-top: 8px; }
+    .tv-swatch { width: 18px; height: 4px; border-radius: 3px; background: var(--accent); display: inline-block; vertical-align: middle; margin-right: 6px; }
 
-    .legend { display: flex; gap: 14px; align-items: center; color: var(--muted); font-size: 0.9rem; margin-top: 8px; }
-    .legend .swatch { width: 18px; height: 4px; border-radius: 3px; background: var(--accent); display: inline-block; vertical-align: middle; margin-right: 6px; }
+    .tv-muted { color: var(--muted); }
+    .tv-stat-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 8px; }
+    .tv-stat { background: var(--card); border: 1px dashed var(--border); border-radius: 10px; padding: 10px; }
+    .tv-stat .tv-label { color: var(--muted); font-size: 0.85rem; }
+    .tv-stat .tv-val { font-weight: 700; font-size: 1.1rem; }
 
-    .muted { color: var(--muted); }
-    .stat-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 8px; }
-    .stat { background: var(--card); border: 1px dashed var(--border); border-radius: 10px; padding: 10px; }
-    .stat .label { color: var(--muted); font-size: 0.85rem; }
-    .stat .val { font-weight: 700; font-size: 1.1rem; }
+    .tv-chart-wrap { position: relative; width: 100%; height: 420px; }
+    .tv-chart { width: 100%; height: 100%; display: block; }
 
-    .tooltip {
+    .tv-tooltip {
       position: absolute; pointer-events: none; transform: translate(-50%, -100%);
       background: var(--tooltip-bg); color: var(--fg); border: 1px solid var(--tooltip-border);
       border-radius: 10px; padding: 8px 10px; font-size: 12px; white-space: nowrap; z-index: 5;
       box-shadow: var(--shadow);
     }
-    .tooltip .em { font-weight: 700; }
+    .tv-tooltip .tv-em { font-weight: 700; }
 
-    footer { padding: 26px 16px 40px; color: var(--muted); text-align: center; }
+    .tv-footer { padding: 26px 16px 40px; color: var(--muted); text-align: center; }
   </style></head>
 <body>
-  <header>
-    <h1 id="title">Tidevann – (statisk)</h1>
-    <div class="sub" id="subtitle">Leser data fra Tidevann.xml (ingen API-kall). Bla med piltaster/knapper eller dra i grafen.</div><div class="controls">
-  <div class="row" role="group" aria-label="Tidsvalg">
-    <button class="btn" data-range="1d" aria-pressed="true">I dag (24t)</button>
-    <button class="btn" data-range="3d">Neste 3 dager</button>
-    <button class="btn" data-range="7d">Uke</button>
+  <div class="tv-root">
+    <header class="tv-container tv-header">
+      <h1 class="tv-h1" id="title">Tidevann – (statisk)</h1>
+      <div class="tv-sub" id="subtitle">Leser data fra Tidevann.xml (ingen API-kall). Bla med piltaster/knapper eller dra i grafen.</div>  <div class="tv-controls">
+    <div class="tv-row" role="group" aria-label="Tidsvalg">
+      <button class="tv-btn" data-range="1d" aria-pressed="true">I dag (24t)</button>
+      <button class="tv-btn" data-range="3d">Neste 3 dager</button>
+      <button class="tv-btn" data-range="7d">Uke</button>
+    </div>
+
+    <span class="tv-spacer"></span>
+
+    <div class="tv-row" role="group" aria-label="Bla i tid">
+      <button class="tv-btn tv-btn-icon" id="pan-left" title="Bla venstre (←)">←</button>
+      <button class="tv-btn tv-btn-icon" id="pan-right" title="Bla høyre (→)">→</button>
+    </div>
+
+    <span class="tv-spacer"></span>
+
+    <div class="tv-row" style="font-size:0.9rem">
+      <span id="dataset-meta" class="tv-muted">Laster …</span>
+    </div>
   </div>
+</header>
 
-  <span class="spacer"></span>
-
-  <div class="row" role="group" aria-label="Bla i tid">
-    <button class="btn icon" id="pan-left" title="Bla venstre (←)">←</button>
-    <button class="btn icon" id="pan-right" title="Bla høyre (→)">→</button>
-  </div>
-
-  <span class="spacer"></span>
-
-  <div class="row small">
-    <span id="dataset-meta" class="muted">Laster …</span>
-  </div>
-</div>
-  </header>  <main class="info">
-    <section class="card" style="grid-column: 1 / -1;">
-      <h2>Graf</h2>
-      <div class="pad">
-        <div id="chart-wrap">
-          <canvas id="chart" aria-label="Tidevannsgraf"></canvas>
-          <div id="tooltip" class="tooltip" style="display:none"></div>
-        </div>
-        <div class="legend">
-          <span><span class="swatch"></span>Vannstand (m)</span>
-        </div>
-        <div class="stat-grid">
-          <div class="stat"><div class="label">Minimum (visning)</div><div class="val" id="stat-min">–</div></div>
-          <div class="stat"><div class="label">Maksimum (visning)</div><div class="val" id="stat-max">–</div></div>
-          <div class="stat"><div class="label">Snitt (visning)</div><div class="val" id="stat-avg">–</div></div>
-        </div>
-        <div class="small muted" style="margin-top:8px" id="stat-info">–</div>
+<main class="tv-container">
+  <section class="tv-card" style="grid-column: 1 / -1;">
+    <h2>Graf</h2>
+    <div class="tv-pad">
+      <div class="tv-chart-wrap" id="chart-wrap">
+        <canvas class="tv-chart" id="chart" aria-label="Tidevannsgraf"></canvas>
+        <div class="tv-tooltip" id="tooltip" style="display:none"></div>
       </div>
-    </section>
-  </main>  <footer>
-    Tid vises i din lokale tidssone (<span id="tz"></span>). Dra for å bla. Bruk piltaster ← → for å flytte vinduet.
-  </footer>  <script>
-    // Filplassering
+      <div class="tv-legend">
+        <span><span class="tv-swatch"></span>Vannstand (m)</span>
+      </div>
+      <div class="tv-stat-grid">
+        <div class="tv-stat"><div class="tv-label">Minimum (visning)</div><div class="tv-val" id="stat-min">–</div></div>
+        <div class="tv-stat"><div class="tv-label">Maksimum (visning)</div><div class="tv-val" id="stat-max">–</div></div>
+        <div class="tv-stat"><div class="tv-label">Snitt (visning)</div><div class="tv-val" id="stat-avg">–</div></div>
+      </div>
+      <div class="tv-muted" style="margin-top:8px" id="stat-info">–</div>
+    </div>
+  </section>
+</main>
+
+<footer class="tv-footer">
+  Tid vises i din lokale tidssone (<span id="tz"></span>). Dra for å bla. Bruk piltaster ← → for å flytte vinduet.
+</footer>
+  </div>  <script>
     const XML_URLS = ['Tidevann.xml', 'https://skyrre.github.io/Tidevanns/Tidevann.xml'];
 
-    // Tilstand
     let allPoints = [];    // {t: Date, v: number, src: 'obs'|'pred'|'H'|'L'|string}
     let dataExtent = null; // { tMin, tMax, vMin, vMax }
-    let viewFrom = null, viewTo = null;   // gjeldende visningsvindu
-    let viewLenMs = 24 * 3600e3;          // standard 24t
+    let viewFrom = null, viewTo = null;
+    let viewLenMs = 24 * 3600e3; // 24t
     let currentRangeKey = '1d';
 
     const $ = (s) => document.querySelector(s);
@@ -154,10 +156,9 @@
     document.addEventListener('DOMContentLoaded', () => {
       $('#tz').textContent = Intl.DateTimeFormat().resolvedOptions().timeZone || 'lokal tid';
 
-      // Range-knapper
-      $$('.btn[data-range]').forEach(btn => {
+      $$('.tv-btn[data-range]').forEach(btn => {
         btn.addEventListener('click', () => {
-          $$('.btn[data-range]').forEach(b => b.setAttribute('aria-pressed', 'false'));
+          $$('.tv-btn[data-range]').forEach(b => b.setAttribute('aria-pressed', 'false'));
           btn.setAttribute('aria-pressed', 'true');
           currentRangeKey = btn.dataset.range;
           viewLenMs = rangeToMs(currentRangeKey);
@@ -166,11 +167,9 @@
         });
       });
 
-      // Pan-knapper
       $('#pan-left').addEventListener('click', () => panBy(-0.5));
       $('#pan-right').addEventListener('click', () => panBy(0.5));
 
-      // Piltaster
       window.addEventListener('keydown', (e) => {
         if (e.key === 'ArrowLeft') { panBy(-0.5); e.preventDefault(); }
         else if (e.key === 'ArrowRight') { panBy(0.5); e.preventDefault(); }
@@ -180,7 +179,6 @@
       window.addEventListener('resize', debounce(renderChart, 80));
     });
 
-    // Last og parse XML
     async function loadXml() {
       try {
         const { text } = await fetchFirstWorking(XML_URLS);
@@ -197,7 +195,6 @@
           $$('#subtitle').textContent = `Lokal fil: Tidevann.xml (enhet: meter, ref: $${parsed.meta.ref || '—'})`;
         }
 
-        // Extent
         const tMin = allPoints[0].t;
         const tMax = allPoints[allPoints.length - 1].t;
         const vs = allPoints.map(p => p.v).filter(Number.isFinite);
@@ -207,7 +204,6 @@
 
         $$('#dataset-meta').textContent = `Punkter: $${allPoints.length} • Periode: ${fmtDate(tMin)} – ${fmtDate(tMax)}`;
 
-        // Init visningsvindu
         viewLenMs = rangeToMs(currentRangeKey);
         placeWindowAroundNow();
         setupInteractions();
@@ -231,7 +227,6 @@
       let start = now.getTime();
       let end = start + viewLenMs;
 
-      // Klem inn i datasettet
       const min = dataExtent.tMin.getTime();
       const max = dataExtent.tMax.getTime();
       if (end > max) { end = max; start = Math.max(min, end - viewLenMs); }
@@ -242,7 +237,6 @@
     }
 
     function panBy(fraction) {
-      // fraction: andel av gjeldende vindu (positiv = høyre)
       const span = viewTo - viewFrom;
       let shift = span * fraction;
       let s = viewFrom.getTime() + shift;
@@ -258,7 +252,6 @@
       renderAll();
     }
 
-    // Interaksjon: dra/peke/tooltip
     function setupInteractions() {
       const canvas = $('#chart');
       const wrap = $('#chart-wrap');
@@ -289,14 +282,14 @@
 
       function onPointerDown(e) {
         dragging = true;
-        const pt = ('touches' in e && e.touches[0]) ? e.touches[0] : e;
+        const pt = ('touches' in e && e.touches && e.touches[0]) ? e.touches[0] : e;
         dragStartX = pt.clientX;
         startFrom = viewFrom.getTime();
         startTo = viewTo.getTime();
         canvas.setPointerCapture?.(e.pointerId || 1);
       }
       function onPointerMove(e) {
-        const pt = ('touches' in e && e.touches[0]) ? e.touches[0] : e;
+        const pt = ('touches' in e && e.touches && e.touches[0]) ? e.touches[0] : e;
         const t = clientToTime(pt.clientX);
         hoverPoint = nearestPointAtTime(t);
         positionTooltip(pt.clientX, pt.clientY, hoverPoint);
@@ -339,7 +332,7 @@
       const wrap = $('#chart-wrap');
       if (!p) { tip.style.display = 'none'; return; }
       tip.style.display = 'block';
-      tip.innerHTML = `<span class="em">${fmtNum(p.v)} m</span><br>${fmtDateTime(p.t)}${p.src ? ` • ${srcLabel(p.src)}` : ''}`;
+      tip.innerHTML = `<span class="tv-em">${fmtNum(p.v)} m</span><br>${fmtDateTime(p.t)}${p.src ? ` • ${srcLabel(p.src)}` : ''}`;
       const rect = wrap.getBoundingClientRect();
       const x = clientX - rect.left;
       const y = clientY - rect.top;
@@ -364,7 +357,6 @@
     function lowerBound(arr, t) { let l = 0, r = arr.length; while (l < r) { const m = (l + r) >> 1; (arr[m].t.getTime() < t ? l = m + 1 : r = m); } return l; }
     function upperBound(arr, t) { let l = 0, r = arr.length; while (l < r) { const m = (l + r) >> 1; (arr[m].t.getTime() <= t ? l = m + 1 : r = m); } return l; }
 
-    // Rendering
     function renderAll(hoverPoint = null) {
       renderStats();
       renderChart(hoverPoint);
@@ -412,7 +404,6 @@
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, w, h);
 
-      // Geometri
       const pad = { L: 56, R: 16, T: 20, B: 32 };
       const plotW = w - pad.L - pad.R;
       const plotH = h - pad.T - pad.B;
@@ -424,21 +415,20 @@
         return;
       }
 
-      // Verdiskala + vertikal buffer (min 0.2 m eller 10 %)
+      // Y-buffer (min 0.2 m eller 10 %)
       let vMin = Math.min(...pts.map(p => p.v));
       let vMax = Math.max(...pts.map(p => p.v));
       const vSpan = Math.max(1e-6, vMax - vMin);
       const padY = Math.max(0.2, vSpan * 0.10);
       vMin -= padY; vMax += padY;
 
-      // Tidskala
       const tMin = viewFrom.getTime();
       const tMax = viewTo.getTime();
 
       const xOf = (t) => pad.L + (t - tMin) / (tMax - tMin) * plotW;
       const yOf = (v) => pad.T + plotH - (v - vMin) / (vMax - vMin) * plotH;
 
-      // Bakgrunn (land) – diskret grønnlig
+      // Bakgrunn (land)
       const landGrad = ctx.createLinearGradient(0, pad.T, 0, pad.T + plotH);
       landGrad.addColorStop(0, getCSS('--land-top'));
       landGrad.addColorStop(1, getCSS('--land-bottom'));
@@ -454,7 +444,7 @@
         else path.lineTo(x, y);
       });
 
-      // Fyll under kurven (vann) – lysere øverst → mørkere nederst
+      // Vann (lysere øverst → mørkere nederst)
       ctx.save();
       const under = new Path2D(path);
       under.lineTo(xOf(pts[pts.length - 1].t.getTime()), pad.T + plotH);
@@ -469,11 +459,11 @@
       ctx.fillRect(pad.L, pad.T, plotW, plotH);
       ctx.restore();
 
-      // Rutenett
+      // Grid
       ctx.strokeStyle = getCSS('--grid');
       ctx.lineWidth = 1;
 
-      // Y-aksen ticks
+      // Y-ticks
       const yTicks = niceTicks(vMin, vMax, 5);
       ctx.beginPath();
       for (const yv of yTicks) {
@@ -482,7 +472,7 @@
       }
       ctx.stroke();
 
-      // X-aksen ticks
+      // X-ticks
       const xTicks = timeTicks(new Date(tMin), new Date(tMax), plotW);
       ctx.beginPath();
       for (const xt of xTicks) {
@@ -491,7 +481,7 @@
       }
       ctx.stroke();
 
-      // Akselabels
+      // Labels
       ctx.fillStyle = getCSS('--muted');
       ctx.font = '12px system-ui,-apple-system,Segoe UI,Roboto,Arial';
       ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
@@ -505,7 +495,7 @@
         ctx.fillText(fmtTickDate(xt, tMin, tMax), x, h - pad.B + 6);
       }
 
-      // Nullinje (0 m), hvis innenfor
+      // Nullinje
       if (vMin < 0 && vMax > 0) {
         ctx.strokeStyle = 'rgba(255,255,255,0.35)';
         ctx.setLineDash([4, 4]);
@@ -516,7 +506,7 @@
         ctx.setLineDash([]);
       }
 
-      // Kurvelinje (mykere)
+      // Kurve
       ctx.strokeStyle = getCSS('--accent');
       ctx.lineWidth = 2;
       ctx.lineJoin = 'round';
@@ -529,7 +519,7 @@
       });
       ctx.stroke();
 
-      // Hover/kryssmarkør + punkt
+      // Hover
       if (hoverPoint) {
         const xh = xOf(hoverPoint.t.getTime());
         const yh = yOf(hoverPoint.v);
@@ -547,12 +537,12 @@
       }
     }
 
-    // Hjelpere
+    // Utils
     function fmtNum(n) { return (Math.round(n * 100) / 100).toLocaleString('nb-NO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
     function fmtDate(d) { return d.toLocaleDateString('nb-NO'); }
     function fmtDateTime(d) { return d.toLocaleString('nb-NO', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(',', ''); }
     function fmtTickDate(d, tMin, tMax) { const spanDays = (tMax - tMin) / 86400000; return spanDays <= 2 ? d.toLocaleTimeString('nb-NO', { hour: '2-digit' }) : d.toLocaleDateString('nb-NO', { day: '2-digit', month: '2-digit' }); }
-    function getCSS(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+    function getCSS(v) { return getComputedStyle(document.querySelector('.tv-root')).getPropertyValue(v).trim(); }
     function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
     function niceTicks(min, max, count=5) {
       const span = max - min; if (span === 0) return [min];
@@ -571,11 +561,7 @@
       const ms = d1 - d0;
       const approxLabels = Math.max(3, Math.floor(widthPx / 110));
       const target = ms / approxLabels;
-      const steps = [
-        5*60e3, 10*60e3, 15*60e3, 30*60e3,
-        60*60e3, 2*60*60e3, 3*60*60e3, 6*60*60e3, 12*60*60e3,
-        24*60*60e3, 2*24*60*60e3, 3*24*60*60e3, 7*24*60*60e3
-      ];
+      const steps = [5*60e3, 10*60e3, 15*60e3, 30*60e3, 60*60e3, 2*60*60e3, 3*60*60e3, 6*60*60e3, 12*60*60e3, 24*60*60e3, 2*24*60*60e3, 3*24*60*60e3, 7*24*60*60e3];
       let step = steps[0];
       for (const s of steps) { if (s >= target) { step = s; break; } }
       const ticks = [];
@@ -583,14 +569,9 @@
       for (let t = +start; t <= +d1 + 1; t += step) ticks.push(new Date(t));
       return ticks;
     }
-    function alignTime(d, stepMs) {
-      const t = +d;
-      if (stepMs >= 24*3600e3) return new Date(d.getFullYear(), d.getMonth(), d.getDate());
-      return new Date(Math.floor(t / stepMs) * stepMs);
-    }
+    function alignTime(d, stepMs) { const t = +d; if (stepMs >= 24*3600e3) return new Date(d.getFullYear(), d.getMonth(), d.getDate()); return new Date(Math.floor(t / stepMs) * stepMs); }
     function srcLabel(s) { if (s === 'obs') return 'Observasjon'; if (s === 'pred') return 'Prognose'; if (s === 'H') return 'Høyvann'; if (s === 'L') return 'Lavvann'; return s; }
 
-    // Hent første fungerende URL
     async function fetchFirstWorking(urls) {
       let lastErr = null;
       for (const u0 of urls) {
@@ -608,18 +589,13 @@
     function addCacheBuster(u) { try { const url = new URL(u, location.href); url.searchParams.set('v', String(Date.now())); return url.toString(); } catch { return u; } }
     function sanitizeXmlText(txt) { let s = txt.replace(/^\uFEFF/, ''); const i = s.indexOf('<'); if (i > 0) s = s.slice(i); const j = s.lastIndexOf('>'); if (j >= 0) s = s.slice(0, j + 1); return s; }
 
-    // Parser for <data type="observation" unit="cm"><waterlevel value=".." time=".."/>
     function parseSehavnivaXml(doc) {
       const points = [];
-      const meta = {
-        name: doc.querySelector('location')?.getAttribute('name') || '',
-        code: doc.querySelector('location')?.getAttribute('code') || '',
-        ref: doc.querySelector('reflevelcode')?.textContent?.trim() || ''
-      };
+      const meta = { name: doc.querySelector('location')?.getAttribute('name') || '', code: doc.querySelector('location')?.getAttribute('code') || '', ref: doc.querySelector('reflevelcode')?.textContent?.trim() || '' };
       const dataBlocks = Array.from(doc.querySelectorAll('locationdata > data'));
       for (const dataEl of dataBlocks) {
         const unit = (dataEl.getAttribute('unit') || '').toLowerCase();
-        const type = (dataEl.getAttribute('type') || '').toLowerCase(); // observation/prediction/...
+        const type = (dataEl.getAttribute('type') || '').toLowerCase();
         for (const wl of dataEl.querySelectorAll('waterlevel')) {
           const time = wl.getAttribute('time');
           const valStr = wl.getAttribute('value');
@@ -634,26 +610,10 @@
         }
       }
       points.sort((a, b) => a.t - b.t || a.v - b.v);
-      const dedup = [];
-      const seen = new Set();
-      for (const p of points) {
-        const key = p.t.toISOString().slice(0,16);
-        if (seen.has(key)) continue;
-        seen.add(key);
-        dedup.push(p);
-      }
+      const dedup = []; const seen = new Set();
+      for (const p of points) { const key = p.t.toISOString().slice(0,16); if (seen.has(key)) continue; seen.add(key); dedup.push(p); }
       return { points: dedup, meta };
     }
-    function findUnitAttr(el) {
-      let cur = el;
-      for (let i = 0; i < 5 && cur; i++) {
-        if (cur.getAttribute) {
-          const u = cur.getAttribute('unit') || cur.getAttribute('units') || cur.getAttribute('enhet');
-          if (u) return u.toLowerCase();
-        }
-        cur = cur.parentElement;
-      }
-      return '';
-    }
+    function findUnitAttr(el) { let cur = el; for (let i = 0; i < 5 && cur; i++) { if (cur.getAttribute) { const u = cur.getAttribute('unit') || cur.getAttribute('units') || cur.getAttribute('enhet'); if (u) return u.toLowerCase(); } cur = cur.parentElement; } return ''; }
   </script></body>
 </html>
