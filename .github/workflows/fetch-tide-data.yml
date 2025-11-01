@@ -1,65 +1,85 @@
-name: Fetch Tide Data
+name: Fetch Tide Dataon:
+workflow_dispatch:
+schedule:
+- cron: "20 3 1 * *"  # månedlig (kan endres)permissions:
+contents: writejobs:
+fetch-and-commit:
+runs-on: ubuntu-latest
+steps:
+- name: Checkout
+uses: actions/checkout@v4  - name: Compute date range (last 365 days)
+    id: dates
+    run: |
+      set -euo pipefail
+      FROM=$(date -u -d "365 days ago" +%Y-%m-%d)
+      TO=$(date -u -d "tomorrow" +%Y-%m-%d)
+      echo "from=$$FROM" >> "$$GITHUB_OUTPUT"
+      echo "to=$$TO" >> "$$GITHUB_OUTPUT"
 
-on:
-  workflow_dispatch:
-  schedule:
-    - cron: "20 3 1 * *"  # månedlig
+  - name: Build URL (prefer secret)
+    id: build
+    env:
+      TIDE_API_URL: ${{ secrets.TIDE_API_URL }}
+    run: |
+      set -euo pipefail
+      if [ -n "${TIDE_API_URL:-}" ]; then
+        echo "Using secret TIDE_API_URL"
+        echo "url=$$TIDE_API_URL" >> "$$GITHUB_OUTPUT"
+      else
+        # Fallback: bygg URL (juster parametre ved behov)
+        PLACE="Bergen"
+        REFCODE="cd"
+        INTERVAL="10"
+        FROM="${{ steps.dates.outputs.from }}"
+        TO="${{ steps.dates.outputs.to }}"
+        URL="https://api.sehavniva.no/tideapi.php?place=$${PLACE}&file=xml&datatype=all&interval=$${INTERVAL}&refcode=$${REFCODE}&fromtime=$${FROM}&totime=${TO}"
+        echo "Using constructed URL"
+        echo "url=$$URL" >> "$$GITHUB_OUTPUT"
+      fi
 
-permissions:
-  contents: write
+  - name: Download XML from Kartverket
+    id: dl
+    run: |
+      set -euo pipefail
+      mkdir -p Tidevanns
+      URL="${{ steps.build.outputs.url }}"
+      echo "Fetching: $URL"
+      # Hent og få med HTTP-status (ikke feile direkte)
+      HTTP_CODE=$$(curl -sSL -w "%{http_code}" "$$URL" -o Tidevanns/Tidevann.xml.tmp || true)
+      echo "HTTP status: $HTTP_CODE"
+      head -c 8000 Tidevanns/Tidevann.xml.tmp > Tidevanns/last-response-snippet.txt || true
 
-jobs:
-  fetch-and-commit:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      if [ "$HTTP_CODE" != "200" ]; then
+        echo "Non-200 from upstream"; exit 1
+      fi
 
-      - name: Compute date range (last 365 days)
-        id: dates
-        run: |
-          set -euo pipefail
-          FROM=$(date -u -d "365 days ago" +%Y-%m-%d)
-          TO=$(date -u -d "tomorrow" +%Y-%m-%d)
-          echo "from=$$FROM" >> "$$GITHUB_OUTPUT"
-          echo "to=$$TO" >> "$$GITHUB_OUTPUT"
+      # Valider at vi faktisk fikk tidevanns-XML
+      if ! grep -Eiq '<(tide|waterlevel)\b' Tidevanns/last-response-snippet.txt; then
+        echo "Validation failed: expected <tide> or <waterlevel> in response"
+        exit 1
+      fi
 
-      - name: Build URL (use secret if set)
-        id: build
-        env:
-          TIDE_API_URL: ${{ secrets.TIDE_API_URL }}
-        run: |
-          set -euo pipefail
-          if [ -n "${TIDE_API_URL:-}" ]; then
-            echo "url=$$TIDE_API_URL" >> "$$GITHUB_OUTPUT"
-          else
-            PLACE="Bergen"
-            REFCODE="cd"
-            INTERVAL="10"
-            FROM="${{ steps.dates.outputs.from }}"
-            TO="${{ steps.dates.outputs.to }}"
-            echo "url=https://api.sehavniva.no/tideapi.php?place=$${PLACE}&file=xml&datatype=all&interval=$${INTERVAL}&refcode=$${REFCODE}&fromtime=$${FROM}&totime=$${TO}" >> "$$GITHUB_OUTPUT"
-          fi
+      mv -f Tidevanns/Tidevann.xml.tmp Tidevanns/Tidevann.xml
 
-      - name: Download XML from Kartverket
-        run: |
-          set -euo pipefail
-          mkdir -p Tidevanns
-          URL="${{ steps.build.outputs.url }}"
-          echo "Fetching: $URL"
-          curl -fsSL "$URL" -o Tidevanns/Tidevann.xml.tmp
-          head -c 8000 Tidevanns/Tidevann.xml.tmp | grep -Eiq '<(tide|waterlevel)\b'
-          mv -f Tidevanns/Tidevann.xml.tmp Tidevanns/Tidevann.xml
+  - name: Upload response snippet on failure
+    if: failure()
+    uses: actions/upload-artifact@v4
+    with:
+      name: tide-response-debug
+      path: |
+        Tidevanns/Tidevann.xml.tmp
+        Tidevanns/last-response-snippet.txt
+      if-no-files-found: ignore
 
-      - name: Commit if changed
-        run: |
-          set -euo pipefail
-          if git diff --quiet -- Tidevanns/Tidevann.xml; then
-            echo "No changes to commit."
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add Tidevanns/Tidevann.xml
-          git commit -m "Update Tidevann.xml (auto via GH Actions)"
-          git push
+  - name: Commit if changed
+    run: |
+      set -euo pipefail
+      if git diff --quiet -- Tidevanns/Tidevann.xml; then
+        echo "No changes to commit."
+        exit 0
+      fi
+      git config user.name "github-actions[bot]"
+      git config user.email "github-actions[bot]@users.noreply.github.com"
+      git add Tidevanns/Tidevann.xml
+      git commit -m "Update Tidevann.xml (auto via GH Actions)"
+      git push
