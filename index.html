@@ -5,10 +5,10 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Tidevann – Bergen (statisk)</title>
 
-  <!-- Viktig for GitHub Pages under /Tidevanns/ -->
+  <!-- Viktig for GitHub Project Pages under /Tidevanns/ -->
   <base href="/Tidevanns/">
 
-  <meta name="description" content="Statisk visning av tidevannsdata for Bergen fra Tidevann.xml" />
+  <meta name="description" content="Statisk visning av tidevannsdata for Bergen fra Tidevann.xml (waterlevel i cm konvertert til meter)" />
   <link rel="canonical" href="https://skyrre.github.io/Tidevanns/" />
 
   <style>
@@ -92,8 +92,8 @@
 </head>
 <body>
   <header>
-    <h1>Tidevann – Bergen (statisk)</h1>
-    <div class="sub">Leser data fra Tidevann.xml i samme mappe (ingen API-kall).</div>
+    <h1 id="title">Tidevann – (statisk)</h1>
+    <div class="sub" id="subtitle">Leser data fra Tidevann.xml i samme mappe (ingen API-kall).</div>
 
     <div class="controls">
       <div class="row">
@@ -146,7 +146,7 @@
             <tr>
               <th>Dato/tid</th>
               <th>Høyde (m)</th>
-              <th>Type</th>
+              <th>Kilde</th>
             </tr>
           </thead>
           <tbody id="table-body">
@@ -158,16 +158,17 @@
   </main>
 
   <footer>
-    Data kilde: Tidevann.xml • Tid vises i din lokale tidssone (<span id="tz"></span>)
+    Kilde: Tidevann.xml • Tid vises i din lokale tidssone (<span id="tz"></span>)
   </footer>
 
   <script>
+    // Konfig
     const XML_PATH = 'Tidevann.xml'; // Ligger i samme mappe som index.html
 
     // Global state
-    let allPoints = [];  // {t: Date, v: number, type?: 'H'|'L'|'pred'|string}
-    let filtered = [];   // nåværende filter
-    let dataExtent = null; // {tMin, tMax, vMin, vMax}
+    let allPoints = [];  // {t: Date, v: number, src: 'obs'|'pred'|'H'|'L'|string}
+    let filtered = [];
+    let dataExtent = null; // { tMin, tMax, vMin, vMax }
     let currentRange = 'today';
 
     const $ = (sel) => document.querySelector(sel);
@@ -191,18 +192,25 @@
 
     async function loadXml() {
       try {
+        // Tips: legg til ?v=timestamp hvis du ofte oppdaterer filen og vil unngå cache
         const res = await fetch(XML_PATH, { cache: 'force-cache' });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const text = await res.text();
 
         // Parse til XML DOM
         const doc = new DOMParser().parseFromString(text, 'application/xml');
-        // Sjekk parser error
-        const parserError = doc.querySelector('parsererror');
-        if (parserError) throw new Error('Ugyldig XML');
+        // Parser-error?
+        if (doc.querySelector('parsererror')) throw new Error('Ugyldig XML');
 
-        allPoints = parseTideXml(doc);
-        if (!allPoints.length) throw new Error('Fant ingen datapunkter i Tidevann.xml');
+        const parsed = parseSehavnivaXml(doc);
+        allPoints = parsed.points;
+        if (!allPoints.length) throw new Error('Fant ingen <waterlevel> i Tidevann.xml');
+
+        // Tittel + undertekst
+        if (parsed.meta.name) {
+          $('#title').textContent = `Tidevann – ${parsed.meta.name} (statisk)`;
+          $('#subtitle').textContent = `Leser data fra Tidevann.xml (kilde: ${parsed.meta.typeLabels.join(' + ')}; enhet: meter; ref: ${parsed.meta.ref || '—'})`;
+        }
 
         // Extent
         const tMin = allPoints[0].t;
@@ -215,102 +223,109 @@
         // Meta
         $('#dataset-meta').innerHTML = `Punkter: <span class="ok">${allPoints.length}</span> • Periode: ${fmtDate(tMin)} – ${fmtDate(tMax)} • Enhet: meter`;
 
-        // Init
         applyFilterAndRender();
       } catch (err) {
         console.error(err);
-        $('#dataset-meta').innerHTML = `<span class="error">Kunne ikke laste Tidevann.xml (${err.message}).</span>`;
+        $('#dataset-meta').innerHTML = `<span class="error">Kunne ikke laste/lese Tidevann.xml (${err.message}).</span>`;
         $('#table-body').innerHTML = `<tr><td colspan="3" class="error">Feil ved lasting/parsing av Tidevann.xml.</td></tr>`;
       }
     }
 
-    // Robust parser: prøver vanlige mønstre fra tide-XML (attributter/time + value/height)
-    function parseTideXml(doc) {
+    // Parser for Sehavniva-lignende XML:
+    // <tide><locationdata><data type="observation" unit="cm"><waterlevel value=".." time=".."/></data>...</locationdata></tide>
+    function parseSehavnivaXml(doc) {
       const points = [];
+      const meta = {
+        name: doc.querySelector('location')?.getAttribute('name') || '',
+        code: doc.querySelector('location')?.getAttribute('code') || '',
+        lat: doc.querySelector('location')?.getAttribute('latitude') || '',
+        lon: doc.querySelector('location')?.getAttribute('longitude') || '',
+        ref: doc.querySelector('reflevelcode')?.textContent?.trim() || '',
+        typeLabels: new Set(), // observation/prediction/etc.
+      };
 
-      // 1) Samle alle elementer med tid + verdi som attributter
-      const allEls = Array.from(doc.querySelectorAll('*'));
-      for (const el of allEls) {
-        const timeAttr = el.getAttribute('time') || el.getAttribute('date') || el.getAttribute('datetime') || el.getAttribute('tid') || null;
-        let valueAttr = el.getAttribute('value') || el.getAttribute('height') || el.getAttribute('val') || el.getAttribute('cm') || null;
+      // Hovedserie: waterlevel under data-blokk(er)
+      const dataBlocks = Array.from(doc.querySelectorAll('locationdata > data'));
+      for (const dataEl of dataBlocks) {
+        const unit = (dataEl.getAttribute('unit') || '').toLowerCase();
+        const type = (dataEl.getAttribute('type') || '').toLowerCase(); // observation/prediction/forecast/...
+        if (type) meta.typeLabels.add(type);
 
-        // Noen ganger ligger verdien i tekstinnholdet
-        if (!valueAttr) {
-          const txt = (el.textContent || '').trim();
-          if (txt && /^-?\d+(\.\d+)?$/.test(txt)) valueAttr = txt;
+        const waterlevels = Array.from(dataEl.querySelectorAll('waterlevel'));
+        for (const wl of waterlevels) {
+          const time = wl.getAttribute('time');
+          const valStr = wl.getAttribute('value');
+          if (!time || !valStr) continue;
+          const t = new Date(time);
+          if (isNaN(t)) continue;
+          let v = parseFloat(valStr);
+          if (!isFinite(v)) continue;
+
+          // Konverter cm→meter der det trengs
+          let u = unit;
+          if (!u) {
+            // fallback: sjekk nærmeste forfedre for unit-attributt
+            u = findUnitAttr(wl);
+          }
+          if (u === 'cm') v = v / 100;
+          else if (u === 'dm') v = v / 10;
+          // ellers antar meter
+
+          const flag = (wl.getAttribute('flag') || '').toLowerCase(); // 'obs' o.l.
+          const src = flag === 'obs' || type === 'observation' ? 'obs' : (type || flag || 'pred');
+          points.push({ t, v, src });
         }
+      }
 
-        if (!timeAttr || !valueAttr) continue;
-
-        const t = parseDateGuess(timeAttr);
-        if (!t) continue;
-        const v = normalizeValueToMeters(parseFloat(valueAttr), el);
+      // Eventuelle ekstreme verdier (høyvann/lavvann)
+      const extremes = Array.from(doc.querySelectorAll('highlow > extreme, extremes > extreme'));
+      for (const ex of extremes) {
+        const name = (ex.getAttribute('name') || '').toLowerCase(); // 'high'/'low'
+        const time = ex.getAttribute('time');
+        const valStr = ex.getAttribute('value');
+        if (!time || !valStr) continue;
+        const t = new Date(time);
+        if (isNaN(t)) continue;
+        let v = parseFloat(valStr);
         if (!isFinite(v)) continue;
+        const u = (findUnitAttr(ex) || '').toLowerCase();
+        if (u === 'cm') v = v / 100;
+        else if (u === 'dm') v = v / 10;
 
-        // Type: H/L/pred hvis finnes
-        let type = el.getAttribute('type') || el.tagName.toLowerCase();
-        if (type === 'h' || /high/i.test(type)) type = 'H';
-        else if (type === 'l' || /low/i.test(type)) type = 'L';
-        else if (/pred|forecast|calc/i.test(type)) type = 'pred';
-        else type = (type === 'value' || type === 'data' || type === 'point') ? 'pred' : type;
-
-        points.push({ t, v, type });
+        const src = name.startsWith('high') ? 'H' : name.startsWith('low') ? 'L' : 'ext';
+        points.push({ t, v, src });
       }
 
-      // 2) Hvis ingenting funnet, prøv spesifikke kjente stier (fallback)
-      if (points.length === 0) {
-        const vals = doc.querySelectorAll('value, values > v, points > point');
-        vals.forEach(el => {
-          const t = parseDateGuess(el.getAttribute('time') || el.getAttribute('date') || el.getAttribute('datetime') || el.querySelector('time')?.textContent);
-          const v = normalizeValueToMeters(parseFloat(el.getAttribute('value') || el.getAttribute('height') || el.querySelector('value')?.textContent), el);
-          if (t && isFinite(v)) points.push({ t, v, type: 'pred' });
-        });
-      }
-
-      // Sorter og fjern åpenbare duplikater (same minute)
+      // Sorter
       points.sort((a, b) => a.t - b.t || a.v - b.v);
+
+      // Dedup for "kontinuerlig" serie (obs/pred) innen samme minutt, men bevar H/L markører
       const dedup = [];
-      const seen = new Set();
+      const seenMin = new Set();
       for (const p of points) {
-        const key = p.t.toISOString().slice(0,16); // til minutt
-        if (seen.has(key)) continue;
-        seen.add(key);
+        const key = p.t.toISOString().slice(0,16); // per minutt
+        const isHL = p.src === 'H' || p.src === 'L';
+        if (!isHL) {
+          if (seenMin.has(key)) continue;
+          seenMin.add(key);
+        }
         dedup.push(p);
       }
-      return dedup;
+
+      meta.typeLabels = Array.from(meta.typeLabels);
+      return { points: dedup, meta };
     }
 
-    function parseDateGuess(s) {
-      if (!s) return null;
-      // Håndter "YYYY-MM-DD HH:mm[:ss]" ved å sette inn 'T'
-      let str = s.trim();
-      if (/^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}(:\d{2})?$/.test(str)) str = str.replace(' ', 'T');
-      // Hvis mangler tidssone, la den tolkes som lokal – vi vil vise i lokal tid uansett
-      const d = new Date(str);
-      if (isNaN(d)) {
-        // Prøv å anta Z
-        const d2 = new Date(str + 'Z');
-        if (!isNaN(d2)) return d2;
-        return null;
-      }
-      return d;
-    }
-
-    // Forsøk å tolke enhet automatisk. Hvis elementer/forfedre sier "cm", konverter til meter.
-    function normalizeValueToMeters(val, el) {
-      if (!isFinite(val) || !el) return val;
-      const unitHints = [];
+    function findUnitAttr(el) {
       let cur = el;
       for (let i = 0; i < 5 && cur; i++) {
-        for (const attr of ['unit', 'units', 'enhet']) {
-          const u = cur.getAttribute && cur.getAttribute(attr);
-          if (u) unitHints.push(u);
+        if (cur.getAttribute) {
+          const u = cur.getAttribute('unit') || cur.getAttribute('units') || cur.getAttribute('enhet');
+          if (u) return u.toLowerCase();
         }
         cur = cur.parentElement;
       }
-      const hint = unitHints.join(' ').toLowerCase();
-      if (/\bcm\b/.test(hint)) return val / 100;
-      return val; // antar meter
+      return '';
     }
 
     function applyFilterAndRender() {
@@ -333,7 +348,6 @@
       }
 
       filtered = allPoints.filter(p => p.t >= from && p.t <= to);
-      // Hvis filter gir tomt resultat (f.eks. i dag uten dekning), vis nærmeste 48 timer innenfor datasettet
       if (filtered.length === 0) {
         const center = now;
         const twoDays = 2*24*3600*1000;
@@ -376,8 +390,8 @@
       const rows = filtered.slice(0, 2000).map(p => {
         const t = fmtDateTime(p.t);
         const v = fmtNum(p.v) + ' m';
-        const type = p.type === 'H' ? 'Høyvann' : p.type === 'L' ? 'Lavvann' : (p.type === 'pred' ? '' : p.type);
-        return `<tr><td class="nowrap">${t}</td><td>${v}</td><td class="muted">${type || ''}</td></tr>`;
+        const src = p.src === 'obs' ? 'Observasjon' : (p.src === 'pred' ? 'Prognose' : (p.src === 'H' ? 'Høyvann' : p.src === 'L' ? 'Lavvann' : p.src));
+        return `<tr><td class="nowrap">${t}</td><td>${v}</td><td class="muted">${src || ''}</td></tr>`;
       });
       tbody.innerHTML = rows.join('');
     }
@@ -396,12 +410,10 @@
       canvas.style.height = h + 'px';
 
       const ctx = canvas.getContext('2d');
-      ctx.scale(dpr, dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-      // Bakgrunn
       ctx.clearRect(0,0,w,h);
 
-      // Hvis ingen data
       if (!filtered.length) {
         ctx.fillStyle = getCSS('--muted');
         ctx.font = '14px system-ui, -apple-system, Segoe UI, Roboto, Arial';
@@ -409,7 +421,6 @@
         return;
       }
 
-      // Skalaer
       const tMin = filtered[0].t.getTime();
       const tMax = filtered[filtered.length-1].t.getTime();
       let vMin = Math.min(...filtered.map(p => p.v));
@@ -424,7 +435,7 @@
       ctx.strokeStyle = getCSS('--grid');
       ctx.lineWidth = 1;
 
-      // Y-aksen ticks (5)
+      // Y-aksen ticks
       const yTicks = niceTicks(vMin, vMax, 5);
       ctx.beginPath();
       for (const yv of yTicks) {
@@ -434,7 +445,7 @@
       }
       ctx.stroke();
 
-      // X-aksen ticks (time/dager)
+      // X-aksen ticks
       const xTicks = timeTicks(new Date(tMin), new Date(tMax), plotW);
       ctx.beginPath();
       for (const xt of xTicks) {
@@ -453,7 +464,6 @@
         const y = padT + plotH - (yv - vMin) / (vMax - vMin) * plotH;
         ctx.fillText(fmtNum(yv), padL - 6, y);
       }
-
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
       for (const xt of xTicks) {
@@ -473,14 +483,14 @@
       });
       ctx.stroke();
 
-      // Markér H/L hvis finnes
-      const hasHL = filtered.some(p => p.type === 'H' || p.type === 'L');
+      // Markér H/L (om til stede)
+      const hasHL = filtered.some(p => p.src === 'H' || p.src === 'L');
       if (hasHL) {
         for (const p of filtered) {
-          if (p.type !== 'H' && p.type !== 'L') continue;
+          if (p.src !== 'H' && p.src !== 'L') continue;
           const x = padL + (p.t.getTime() - tMin) / (tMax - tMin) * plotW;
           const y = padT + plotH - (p.v - vMin) / (vMax - vMin) * plotH;
-          ctx.fillStyle = p.type === 'H' ? getCSS('--good') : getCSS('--bad');
+          ctx.fillStyle = p.src === 'H' ? getCSS('--good') : getCSS('--bad');
           ctx.beginPath();
           ctx.arc(x, y, 3, 0, Math.PI * 2);
           ctx.fill();
@@ -540,8 +550,7 @@
     function alignTime(d, stepMs) {
       const t = +d;
       if (stepMs >= 24*3600*1000) {
-        const dd = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-        return dd;
+        return new Date(d.getFullYear(), d.getMonth(), d.getDate());
       }
       return new Date(Math.floor(t / stepMs) * stepMs);
     }
