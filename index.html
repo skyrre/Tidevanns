@@ -5,89 +5,45 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Tidevann – Bergen (statisk)</title>
 
-  <!-- Viktig for GitHub Project Pages under /Tidevanns/ -->
+  <!-- GitHub Project Pages under /Tidevanns/ -->
   <base href="/Tidevanns/">
 
-  <meta name="description" content="Statisk visning av tidevannsdata for Bergen fra Tidevann.xml (waterlevel i cm konvertert til meter)" />
+  <meta name="description" content="Statisk visning av tidevannsdata fra Tidevann.xml (waterlevel i cm → meter)" />
   <link rel="canonical" href="https://skyrre.github.io/Tidevanns/" />
 
   <style>
     :root {
       color-scheme: light dark;
-      --bg: #0b0b0c;
-      --fg: #e9eef3;
-      --muted: #9aa6b2;
-      --accent: #2f7dd1;
-      --grid: #2a2f36;
-      --card: #14181d;
-      --border: #1f262d;
-      --good: #2db071;
-      --bad: #d9534f;
+      --bg: #0b0b0c; --fg: #e9eef3; --muted: #9aa6b2; --accent: #2f7dd1;
+      --grid: #2a2f36; --card: #14181d; --border: #1f262d; --good: #2db071; --bad: #d9534f;
     }
     @media (prefers-color-scheme: light) {
-      :root {
-        --bg: #f7f8fa;
-        --fg: #0f1720;
-        --muted: #5c6773;
-        --accent: #155eab;
-        --grid: #e6ebf1;
-        --card: #ffffff;
-        --border: #dfe6ee;
-      }
+      :root { --bg:#f7f8fa; --fg:#0f1720; --muted:#5c6773; --accent:#155eab; --grid:#e6ebf1; --card:#fff; --border:#dfe6ee; }
     }
-    * { box-sizing: border-box; }
-    html, body { margin: 0; padding: 0; height: 100%; }
-    body {
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
-      background: var(--bg);
-      color: var(--fg);
-      line-height: 1.45;
-    }
-    header, main { width: min(1100px, 100%); margin: 0 auto; padding: 16px; }
-    header { padding-top: 20px; }
-    h1 { font-size: 1.6rem; margin: 0 0 6px; }
-    .sub { color: var(--muted); font-size: 0.95rem; margin-bottom: 14px; }
-    .controls {
-      display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 10px 0 16px;
-    }
-    button.btn {
-      appearance: none; border: 1px solid var(--border); background: var(--card);
-      color: var(--fg); padding: 8px 12px; border-radius: 8px; cursor: pointer; font-weight: 600;
-    }
-    button.btn[aria-pressed="true"] { border-color: var(--accent); background: color-mix(in oklab, var(--accent) 12%, var(--card)); }
-    .info {
-      display: grid; gap: 10px; grid-template-columns: repeat(2, minmax(0,1fr));
-    }
-    @media (min-width: 900px) { .info { grid-template-columns: 2fr 1fr; } }
-    .card {
-      background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: clip;
-    }
-    .card h2 { font-size: 1rem; margin: 0; padding: 12px 14px; border-bottom: 1px solid var(--border); }
-    .pad { padding: 12px; }
-    #chart-wrap { position: relative; width: 100%; height: 340px; }
-    #chart { width: 100%; height: 100%; display: block; }
-    .legend { display: flex; gap: 14px; align-items: center; color: var(--muted); font-size: 0.9rem; margin-top: 8px; }
-    .legend .swatch { width: 14px; height: 3px; border-radius: 2px; background: var(--accent); display: inline-block; vertical-align: middle; margin-right: 6px; }
-    table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
-    thead th {
-      text-align: left; font-size: 0.9rem; color: var(--muted);
-      position: sticky; top: 0; background: var(--card); border-bottom: 1px solid var(--border);
-      padding: 10px 8px;
-    }
-    tbody td { padding: 8px; border-bottom: 1px dashed var(--border); }
-    tbody tr:hover { background: color-mix(in oklab, var(--accent) 8%, var(--card)); }
-    .muted { color: var(--muted); }
-    .stat-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
-    .stat { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 10px; }
-    .stat .label { color: var(--muted); font-size: 0.85rem; }
-    .stat .val { font-weight: 700; font-size: 1.1rem; }
-    footer { padding: 30px 16px 50px; color: var(--muted); text-align: center; }
-    .error { color: var(--bad); font-weight: 600; }
-    .ok { color: var(--good); font-weight: 600; }
-    .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-    .spacer { flex: 1; }
-    .small { font-size: 0.9rem; }
-    .nowrap { white-space: nowrap; }
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0;height:100%}
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Apple Color Emoji","Segoe UI Emoji";background:var(--bg);color:var(--fg);line-height:1.45}
+    header,main{width:min(1100px,100%);margin:0 auto;padding:16px} header{padding-top:20px}
+    h1{font-size:1.6rem;margin:0 0 6px} .sub{color:var(--muted);font-size:.95rem;margin-bottom:14px}
+    .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0 16px}
+    button.btn{appearance:none;border:1px solid var(--border);background:var(--card);color:var(--fg);padding:8px 12px;border-radius:8px;cursor:pointer;font-weight:600}
+    button.btn[aria-pressed="true"]{border-color:var(--accent);background:color-mix(in oklab,var(--accent) 12%,var(--card))}
+    .info{display:grid;gap:10px;grid-template-columns:repeat(2,minmax(0,1fr))} @media(min-width:900px){.info{grid-template-columns:2fr 1fr}}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:clip}
+    .card h2{font-size:1rem;margin:0;padding:12px 14px;border-bottom:1px solid var(--border)} .pad{padding:12px}
+    #chart-wrap{position:relative;width:100%;height:340px} #chart{width:100%;height:100%;display:block}
+    .legend{display:flex;gap:14px;align-items:center;color:var(--muted);font-size:.9rem;margin-top:8px}
+    .legend .swatch{width:14px;height:3px;border-radius:2px;background:var(--accent);display:inline-block;vertical-align:middle;margin-right:6px}
+    table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+    thead th{text-align:left;font-size:.9rem;color:var(--muted);position:sticky;top:0;background:var(--card);border-bottom:1px solid var(--border);padding:10px 8px}
+    tbody td{padding:8px;border-bottom:1px dashed var(--border)} tbody tr:hover{background:color-mix(in oklab,var(--accent) 8%,var(--card))}
+    .muted{color:var(--muted)} .stat-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+    .stat{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px}
+    .stat .label{color:var(--muted);font-size:.85rem} .stat .val{font-weight:700;font-size:1.1rem}
+    footer{padding:30px 16px 50px;color:var(--muted);text-align:center}
+    .error{color:var(--bad);font-weight:600} .ok{color:var(--good);font-weight:600}
+    .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center} .spacer{flex:1} .small{font-size:.9rem} .nowrap{white-space:nowrap}
+    .debug{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;font-size:.85rem;white-space:pre-wrap;background:var(--card);border:1px dashed var(--border);border-radius:8px;padding:8px;margin-top:10px;color:var(--muted)}
   </style>
 </head>
 <body>
@@ -121,20 +77,12 @@
       <h2>Statistikk (filter)</h2>
       <div class="pad">
         <div class="stat-grid">
-          <div class="stat">
-            <div class="label">Minimum</div>
-            <div class="val" id="stat-min">–</div>
-          </div>
-          <div class="stat">
-            <div class="label">Maksimum</div>
-            <div class="val" id="stat-max">–</div>
-          </div>
-          <div class="stat">
-            <div class="label">Snitt</div>
-            <div class="val" id="stat-avg">–</div>
-          </div>
+          <div class="stat"><div class="label">Minimum</div><div class="val" id="stat-min">–</div></div>
+          <div class="stat"><div class="label">Maksimum</div><div class="val" id="stat-max">–</div></div>
+          <div class="stat"><div class="label">Snitt</div><div class="val" id="stat-avg">–</div></div>
         </div>
         <div class="small muted" style="margin-top:8px" id="stat-info">–</div>
+        <div id="debug" class="debug" style="display:none"></div>
       </div>
     </section>
 
@@ -143,11 +91,7 @@
       <div class="pad" style="max-height: 50vh; overflow: auto;">
         <table>
           <thead>
-            <tr>
-              <th>Dato/tid</th>
-              <th>Høyde (m)</th>
-              <th>Kilde</th>
-            </tr>
+            <tr><th>Dato/tid</th><th>Høyde (m)</th><th>Kilde</th></tr>
           </thead>
           <tbody id="table-body">
             <tr><td colspan="3" class="muted">Laster data …</td></tr>
@@ -163,13 +107,22 @@
 
   <script>
     // Konfig
-    const XML_PATH = 'Tidevann.xml'; // Ligger i samme mappe som index.html
+    const CANDIDATE_PATHS = [
+      'Tidevann.xml',
+      './Tidevann.xml',
+      'tidevann.xml',
+      'Tidevann.XML',
+      // Absolutte fallbacks
+      new URL('/Tidevanns/Tidevann.xml', location.origin).href,
+      new URL(location.pathname.replace(/\/[^\/]*$/, '/') + 'Tidevann.xml', location.origin).href,
+    ];
 
     // Global state
     let allPoints = [];  // {t: Date, v: number, src: 'obs'|'pred'|'H'|'L'|string}
     let filtered = [];
     let dataExtent = null; // { tMin, tMax, vMin, vMax }
     let currentRange = 'today';
+    let lastFetchInfo = null;
 
     const $ = (sel) => document.querySelector(sel);
     const $$ = (sel) => Array.from(document.querySelectorAll(sel));
@@ -192,24 +145,18 @@
 
     async function loadXml() {
       try {
-        // Tips: legg til ?v=timestamp hvis du ofte oppdaterer filen og vil unngå cache
-        const res = await fetch(XML_PATH, { cache: 'force-cache' });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const text = await res.text();
-
-        // Parse til XML DOM
+        const { text, url, status, contentType, preview } = await fetchFirstWorking(CANDIDATE_PATHS);
+        lastFetchInfo = { url, status, contentType, previewLen: preview.length };
         const doc = new DOMParser().parseFromString(text, 'application/xml');
-        // Parser-error?
-        if (doc.querySelector('parsererror')) throw new Error('Ugyldig XML');
+        if (doc.querySelector('parsererror')) throw new Error('Ugyldig XML (parsererror)');
 
         const parsed = parseSehavnivaXml(doc);
         allPoints = parsed.points;
-        if (!allPoints.length) throw new Error('Fant ingen <waterlevel> i Tidevann.xml');
+        if (!allPoints.length) throw new Error('Fant ingen waterlevel-punkter i XML');
 
-        // Tittel + undertekst
         if (parsed.meta.name) {
           $('#title').textContent = `Tidevann – ${parsed.meta.name} (statisk)`;
-          $('#subtitle').textContent = `Leser data fra Tidevann.xml (kilde: ${parsed.meta.typeLabels.join(' + ')}; enhet: meter; ref: ${parsed.meta.ref || '—'})`;
+          $('#subtitle').textContent = `Lokal fil: Tidevann.xml • Enhet: meter • Ref: ${parsed.meta.ref || '—'}`;
         }
 
         // Extent
@@ -220,15 +167,39 @@
         const vMax = Math.max(...vs);
         dataExtent = { tMin, tMax, vMin, vMax };
 
-        // Meta
-        $('#dataset-meta').innerHTML = `Punkter: <span class="ok">${allPoints.length}</span> • Periode: ${fmtDate(tMin)} – ${fmtDate(tMax)} • Enhet: meter`;
-
+        $('#dataset-meta').innerHTML = `Punkter: <span class="ok">${allPoints.length}</span> • Periode: ${fmtDate(tMin)} – ${fmtDate(tMax)} • Hentet fra: <code>${shortUrl(url)}</code>`;
+        hideDebug();
         applyFilterAndRender();
       } catch (err) {
         console.error(err);
-        $('#dataset-meta').innerHTML = `<span class="error">Kunne ikke laste/lese Tidevann.xml (${err.message}).</span>`;
+        const info = lastFetchInfo ? `URL: ${lastFetchInfo.url}\nHTTP: ${lastFetchInfo.status}\nContent-Type: ${lastFetchInfo.contentType}\nForhåndsvisning (${lastFetchInfo.previewLen} tegn):\n${lastFetchInfo.preview}` : 'Ingen fetch-info.';
+        $('#dataset-meta').innerHTML = `<span class="error">Kunne ikke laste/lese Tidevann.xml: ${escapeHtml(err.message)}</span>`;
         $('#table-body').innerHTML = `<tr><td colspan="3" class="error">Feil ved lasting/parsing av Tidevann.xml.</td></tr>`;
+        showDebug(info);
       }
+    }
+
+    async function fetchFirstWorking(urls) {
+      let lastErr = null;
+      for (const u of urls) {
+        try {
+          const res = await fetch(u, { cache: 'no-cache', mode: 'same-origin' });
+          const contentType = res.headers.get('content-type') || '';
+          const text = await res.text();
+          const preview = text.slice(0, 400);
+          lastFetchInfo = { url: u, status: res.status, contentType, preview };
+          if (!res.ok) { lastErr = new Error(`HTTP ${res.status} for ${u}`); continue; }
+          // Enkel heuristikk: må inneholde <tide eller <waterlevel
+          if (!/\<(tide|waterlevel)\b/i.test(preview)) {
+            lastErr = new Error(`Uventet innhold for ${u}`);
+            continue;
+          }
+          return { text, url: u, status: res.status, contentType, preview };
+        } catch (e) {
+          lastErr = e;
+        }
+      }
+      throw lastErr || new Error('Fant ingen gyldig XML via kandidat-stier');
     }
 
     // Parser for Sehavniva-lignende XML:
@@ -241,10 +212,9 @@
         lat: doc.querySelector('location')?.getAttribute('latitude') || '',
         lon: doc.querySelector('location')?.getAttribute('longitude') || '',
         ref: doc.querySelector('reflevelcode')?.textContent?.trim() || '',
-        typeLabels: new Set(), // observation/prediction/etc.
+        typeLabels: new Set(),
       };
 
-      // Hovedserie: waterlevel under data-blokk(er)
       const dataBlocks = Array.from(doc.querySelectorAll('locationdata > data'));
       for (const dataEl of dataBlocks) {
         const unit = (dataEl.getAttribute('unit') || '').toLowerCase();
@@ -256,28 +226,26 @@
           const time = wl.getAttribute('time');
           const valStr = wl.getAttribute('value');
           if (!time || !valStr) continue;
+
+          // Tidsstempel er ISO med offset, new Date(time) skal fungere
           const t = new Date(time);
           if (isNaN(t)) continue;
+
           let v = parseFloat(valStr);
           if (!isFinite(v)) continue;
 
-          // Konverter cm→meter der det trengs
-          let u = unit;
-          if (!u) {
-            // fallback: sjekk nærmeste forfedre for unit-attributt
-            u = findUnitAttr(wl);
-          }
+          // Enhet: cm/dm → meter
+          let u = unit || findUnitAttr(wl);
           if (u === 'cm') v = v / 100;
           else if (u === 'dm') v = v / 10;
-          // ellers antar meter
 
-          const flag = (wl.getAttribute('flag') || '').toLowerCase(); // 'obs' o.l.
+          const flag = (wl.getAttribute('flag') || '').toLowerCase(); // 'obs'
           const src = flag === 'obs' || type === 'observation' ? 'obs' : (type || flag || 'pred');
           points.push({ t, v, src });
         }
       }
 
-      // Eventuelle ekstreme verdier (høyvann/lavvann)
+      // Ekstreme verdier (hvis eksisterer)
       const extremes = Array.from(doc.querySelectorAll('highlow > extreme, extremes > extreme'));
       for (const ex of extremes) {
         const name = (ex.getAttribute('name') || '').toLowerCase(); // 'high'/'low'
@@ -291,7 +259,6 @@
         const u = (findUnitAttr(ex) || '').toLowerCase();
         if (u === 'cm') v = v / 100;
         else if (u === 'dm') v = v / 10;
-
         const src = name.startsWith('high') ? 'H' : name.startsWith('low') ? 'L' : 'ext';
         points.push({ t, v, src });
       }
@@ -299,11 +266,11 @@
       // Sorter
       points.sort((a, b) => a.t - b.t || a.v - b.v);
 
-      // Dedup for "kontinuerlig" serie (obs/pred) innen samme minutt, men bevar H/L markører
+      // Dedup kontinuerlig serie per minutt, men bevar H/L
       const dedup = [];
       const seenMin = new Set();
       for (const p of points) {
-        const key = p.t.toISOString().slice(0,16); // per minutt
+        const key = p.t.toISOString().slice(0,16);
         const isHL = p.src === 'H' || p.src === 'L';
         if (!isHL) {
           if (seenMin.has(key)) continue;
@@ -312,7 +279,6 @@
         dedup.push(p);
       }
 
-      meta.typeLabels = Array.from(meta.typeLabels);
       return { points: dedup, meta };
     }
 
@@ -411,7 +377,6 @@
 
       const ctx = canvas.getContext('2d');
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
       ctx.clearRect(0,0,w,h);
 
       if (!filtered.length) {
@@ -499,61 +464,19 @@
     }
 
     // Utils
-    function fmtNum(n) { return (Math.round(n * 100) / 100).toLocaleString('nb-NO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
-    function fmtDate(d) { return d.toLocaleDateString('nb-NO'); }
-    function fmtDateTime(d) {
-      return d.toLocaleString('nb-NO', {
-        year: 'numeric', month: '2-digit', day: '2-digit',
-        hour: '2-digit', minute: '2-digit'
-      }).replace(',', '');
-    }
-    function fmtTickDate(d, tMin, tMax) {
-      const spanDays = (tMax - tMin) / (1000*3600*24);
-      if (spanDays <= 2) return d.toLocaleTimeString('nb-NO', { hour: '2-digit' });
-      return d.toLocaleDateString('nb-NO', { day: '2-digit', month: '2-digit' });
-    }
-    function getCSS(varName) { return getComputedStyle(document.documentElement).getPropertyValue(varName).trim(); }
-    function debounce(fn, ms) {
-      let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
-    }
-    function niceTicks(min, max, count=5) {
-      const span = max - min;
-      if (span === 0) return [min];
-      const step = Math.pow(10, Math.floor(Math.log10(span / count)));
-      const err = (count * step) / span;
-      let niceStep = step;
-      if (err <= 0.15) niceStep = step * 10;
-      else if (err <= 0.35) niceStep = step * 5;
-      else if (err <= 0.75) niceStep = step * 2;
-      const ticks = [];
-      const start = Math.ceil(min / niceStep) * niceStep;
-      for (let v = start; v <= max; v += niceStep) ticks.push(+v.toFixed(6));
-      return ticks;
-    }
-    function timeTicks(d0, d1, widthPx) {
-      const ms = d1 - d0;
-      const approxLabels = Math.max(3, Math.floor(widthPx / 110));
-      const targetStep = ms / approxLabels;
-
-      const steps = [
-        5*60*1000, 10*60*1000, 15*60*1000, 30*60*1000,
-        60*60*1000, 2*60*60*1000, 3*60*60*1000, 6*60*60*1000, 12*60*60*1000,
-        24*60*60*1000, 2*24*60*60*1000, 3*24*60*60*1000, 7*24*60*60*1000
-      ];
-      let step = steps[0];
-      for (const s of steps) { if (s >= targetStep) { step = s; break; } }
-      const ticks = [];
-      const start = alignTime(d0, step);
-      for (let t = +start; t <= +d1 + 1; t += step) ticks.push(new Date(t));
-      return ticks;
-    }
-    function alignTime(d, stepMs) {
-      const t = +d;
-      if (stepMs >= 24*3600*1000) {
-        return new Date(d.getFullYear(), d.getMonth(), d.getDate());
-      }
-      return new Date(Math.floor(t / stepMs) * stepMs);
-    }
+    function fmtNum(n){return (Math.round(n*100)/100).toLocaleString('nb-NO',{minimumFractionDigits:2,maximumFractionDigits:2})}
+    function fmtDate(d){return d.toLocaleDateString('nb-NO')}
+    function fmtDateTime(d){return d.toLocaleString('nb-NO',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}).replace(',','')}
+    function fmtTickDate(d,tMin,tMax){const spanDays=(tMax-tMin)/(1000*3600*24);return spanDays<=2?d.toLocaleTimeString('nb-NO',{hour:'2-digit'}):d.toLocaleDateString('nb-NO',{day:'2-digit',month:'2-digit'})}
+    function getCSS(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim()}
+    function debounce(fn,ms){let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms)}}
+    function niceTicks(min,max,count=5){const span=max-min;if(span===0)return[min];const step=Math.pow(10,Math.floor(Math.log10(span/count)));const err=(count*step)/span;let s=step;if(err<=.15)s=step*10;else if(err<=.35)s=step*5;else if(err<=.75)s=step*2;const ticks=[];const start=Math.ceil(min/s)*s;for(let v=start;v<=max;v+=s)ticks.push(+v.toFixed(6));return ticks}
+    function timeTicks(d0,d1,widthPx){const ms=d1-d0;const approx=Math.max(3,Math.floor(widthPx/110));const target=ms/approx;const steps=[5*60e3,10*60e3,15*60e3,30*60e3,60*60e3,2*60*60e3,3*60*60e3,6*60*60e3,12*60*60e3,24*60*60e3,2*24*60*60e3,3*24*60*60e3,7*24*60*60e3];let step=steps[0];for(const s of steps){if(s>=target){step=s;break}}const ticks=[];const start=alignTime(d0,step);for(let t=+start;t<=+d1+1;t+=step)ticks.push(new Date(t));return ticks}
+    function alignTime(d,stepMs){const t=+d;if(stepMs>=24*3600*1000){return new Date(d.getFullYear(),d.getMonth(),d.getDate())}return new Date(Math.floor(t/stepMs)*stepMs)}
+    function shortUrl(u){try{const url=new URL(u);return url.pathname.split('/').slice(-2).join('/')}catch{return u}}
+    function showDebug(txt){const el=$('#debug');el.style.display='block';el.textContent=txt}
+    function hideDebug(){const el=$('#debug');el.style.display='none';el.textContent=''}
+    function escapeHtml(s){return s.replace(/[&<>"']/g,(m)=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]))}
   </script>
 </body>
 </html>
