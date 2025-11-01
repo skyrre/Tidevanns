@@ -2,7 +2,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="viewport-fit=cover,width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-  <title>Tidevann – Bergensområdet</title>  <!-- iOS "app" -->  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <title>Tidevann – Bergensområdet v4</title>  <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Tide Bergen" />
   <meta name="theme-color" content="#0f172a" />  <style>
@@ -47,7 +47,7 @@
       border-radius: 12px;
       padding: 10px;
       display: grid;
-      grid-template-columns: repeat(7, minmax(0, 1fr));
+      grid-template-columns: repeat(8, minmax(0, 1fr));
       gap: 10px;
     }
     .control { display: flex; flex-direction: column; gap: 6px; }
@@ -58,10 +58,7 @@
       border: 1px solid var(--border); border-radius: 10px;
       padding: 10px; font-size: 14px; outline: none;
     }
-    button.primary {
-      background: linear-gradient(135deg, #2563eb, #06b6d4);
-      border: none; color: #fff; font-weight: 600; cursor: pointer;
-    }
+    button.primary { background: linear-gradient(135deg, #2563eb, #06b6d4); border: none; color: #fff; font-weight: 600; cursor: pointer; }
     button.ghost { background: transparent; border: 1px solid var(--border); color: var(--fg); cursor: pointer; }
     .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
     .hint { font-size: 12px; color: var(--muted); }
@@ -94,7 +91,7 @@
     canvas { width: 100% !important; height: 320px !important; }
     .small { font-size: 12px; color: var(--muted); }
     .chip { display:inline-flex; gap:6px; align-items:center; padding:4px 8px; border:1px solid var(--border); border-radius:999px; background:#0f172a; font-size:12px; color:#9aa0a6;}
-    @media (max-width: 1100px) { .controls { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+    @media (max-width: 1200px) { .controls { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
   </style>  <!-- Kun Chart.js + zoom (linear-akse, ingen datoadapter nødvendig) -->  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>  <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-zoom/2.0.1/chartjs-plugin-zoom.umd.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script></head>
 <body>
   <div class="app">
@@ -103,12 +100,13 @@
         <div class="logo">🌊</div>
         <div>
           <h1>Tidevann – Bergensområdet</h1>
-          <div class="hint" id="subtitle">Interaktiv graf og flo/fjære</div>
+          <div class="hint" id="subtitle">v4 • Interaktiv graf og flo/fjære</div>
         </div>
       </div>
       <div class="row">
         <span id="netChip" class="chip" style="display:none;">Frakoblet</span>
         <button id="btnTestApi" class="ghost">Test API</button>
+        <button id="btnClearCache" class="ghost">Tøm cache</button>
         <button id="btnA2HS" class="ghost" style="display:none">Installer</button>
         <button id="btnRefresh" class="primary">Oppdater</button>
       </div>
@@ -141,9 +139,9 @@
     <label for="interval">Oppløsning (min)</label>
     <select id="interval">
       <option value="10">10</option>
-      <option value="15" selected>15</option>
+      <option value="15">15</option>
       <option value="30">30</option>
-      <option value="60">60</option>
+      <option value="60" selected>60</option>
     </select>
   </div>
   <div class="control">
@@ -162,7 +160,7 @@
   </div>
   <div class="control">
     <label>&nbsp;</label>
-    <div class="hint">Tips: Start med 7–14 dager og 60 min for raske svar.</div>
+    <div class="hint">Tips: Start 7–14 dager og 60 min for raske svar.</div>
   </div>
 </section>
 
@@ -177,7 +175,7 @@
       <span class="dot" style="background:#f472b6"></span> Fjære
     </div>
     <canvas id="chart"></canvas>
-    <div class="footnotes small">Tips: Klyp for å zoome, dra for å panorere.</div>
+    <div class="footnotes small">Klyp for å zoome, dra for å panorere.</div>
     <div class="row" style="margin-top:8px;">
       <button id="btnZoomReset" class="ghost">Nullstill zoom</button>
       <span class="hint">Periode: <span id="periodLbl"></span></span>
@@ -202,10 +200,10 @@
 </section>
 
 <p class="small" style="margin-top:10px;">
-  Kilde: Kartverket – Se havnivå (ved valgt datakilde). Grafen er robust uten datoadapter.
+  Kilde: Kartverket – Se havnivå (ved valgt datakilde). Grafen bruker lineær tidsakse (robust).
 </p>
   </div>  <script>
-    // --- Konfigurasjon og verktøy ---
+    const APP_VERSION = 'v4';
     const SEHAVNIVA_BASE = "https://api.sehavniva.no/tideapi.php";
 
     const store = {
@@ -234,6 +232,7 @@
       btnA2HS: document.getElementById("btnA2HS"),
       netChip: document.getElementById("netChip"),
       btnTestApi: document.getElementById("btnTestApi"),
+      btnClearCache: document.getElementById("btnClearCache"),
     };
 
     const todayLocalISODate = () => {
@@ -245,7 +244,7 @@
     };
     els.start.value = store.get("start", todayLocalISODate());
     els.days.value = store.get("days", "14");
-    els.interval.value = store.get("interval", "60"); // roligere default for API
+    els.interval.value = store.get("interval", "60");
     els.loc.value = store.get("loc", "bergen|60.39299|5.32415");
     els.source.value = store.get("source", "kartverket");
     els.tz.value = store.get("tz", "local");
@@ -274,7 +273,6 @@
       return `${y}-${m}-${d}T${hh}:${mm}:00`;
     }
 
-    // Demo-generator
     function generateDemoTide({ start, minutes, stepMin }) {
       const pts = [];
       const twoPi = Math.PI * 2;
@@ -292,7 +290,6 @@
       return pts;
     }
 
-    // Bygg flere URL-varianter (API kan variere på parameternavn/verdier)
     function buildKartverketUrls({ lat, lon, fromISO, toISO, intervalMin }) {
       const base = {
         fromtime: fromISO.slice(0,16),
@@ -302,7 +299,7 @@
       };
       const coords = [
         { lat: lat.toFixed(5), lon: lon.toFixed(5) },
-        { place: 'Bergen' } // fallback
+        { place: 'Bergen' }
       ];
       const datatypes = ['prediction','predictions','tidetable'];
       const refcodes = ['CD','LAT'];
@@ -317,7 +314,6 @@
       return combos.map(p => `${SEHAVNIVA_BASE}?${new URLSearchParams(p).toString()}`);
     }
 
-    // Konverter Kartverket-data til meter og punkter med x=timestamp
     function adaptKartverketJson(json) {
       const out = [];
       if (Array.isArray(json?.predictions)) {
@@ -352,7 +348,7 @@
       }
       if (!out.length) return [];
       const maxVal = Math.max(...out.map(o => o.v));
-      const factor = maxVal > 20 ? 0.01 : 1; // cm -> m hvis tallene er store
+      const factor = maxVal > 20 ? 0.01 : 1; // cm -> m
       return out.map(o => {
         const h = o.v * factor;
         const x = o.t.getTime();
@@ -360,7 +356,6 @@
       });
     }
 
-    // Hent Kartverket-data med flere forsøk
     let lastTriedUrl = '';
     async function fetchKartverket({ lat, lon, start, end, stepMin }) {
       const urls = buildKartverketUrls({ lat, lon, fromISO: toISO(start), toISO: toISO(end), intervalMin: stepMin });
@@ -381,7 +376,6 @@
       throw lastErr || new Error('Kunne ikke hente fra Kartverket');
     }
 
-    // Finn lokale maks/min
     function findHighLows(pts) {
       const res = [];
       for (let i=1; i<pts.length-1; i++) {
@@ -392,7 +386,6 @@
       return res;
     }
 
-    // Chart (linear-akse)
     let chart;
     function ensureChart(tzMode) {
       if (chart) return chart;
@@ -514,7 +507,6 @@
     }
 
     async function refresh() {
-      // Persist valg
       store.set("start", els.start.value);
       store.set("days", els.days.value);
       store.set("interval", els.interval.value);
@@ -533,7 +525,7 @@
       const startDate = new Date(startValue + 'T00:00:00');
       const endDate = new Date(startDate.getTime() + days*24*3600*1000);
       els.periodLbl.textContent = `${fmtDate(startDate, tzMode)} – ${fmtDate(new Date(endDate.getTime()-60000), tzMode)}`;
-      els.subtitle.textContent = `Område: ${name[0].toUpperCase()+name.slice(1)} • Oppløsning: ${stepMin} min`;
+      els.subtitle.textContent = `v4 • Område: ${name[0].toUpperCase()+name.slice(1)} • Oppløsning: ${stepMin} min`;
       els.sourceLbl.textContent = els.source.value === 'demo' ? 'Demo' : 'Kartverket';
 
       try {
@@ -567,11 +559,10 @@
         updateHLList(highsLows.filter(x=>x.type==='flo'), highsLows.filter(x=>x.type==='fjære'), tzMode);
         els.maxVal.textContent = fmtNum(Math.max(...pts.map(p => p.h)));
         els.minVal.textContent = fmtNum(Math.min(...pts.map(p => p.h)));
-        setBanner(`Klarte ikke hente fra Kartverket – viser demo nå. Sist prøvde URL: ${lastTriedUrl || '(ingen)'}`, 'error');
+        setBanner(`Klarte ikke hente fra Kartverket – viser demo nå. Sist prøvd URL: ${lastTriedUrl || '(ingen)'}`, 'error');
       }
     }
 
-    // Nettverksstatus
     function updateNetChip() {
       els.netChip.style.display = navigator.onLine ? 'none' : 'inline-flex';
       els.netChip.textContent = navigator.onLine ? '' : 'Frakoblet';
@@ -600,12 +591,13 @@
       if (chart && chart.resetZoom) chart.resetZoom();
       refresh();
     });
+
+    // Test API-knapp: åpner sist forsøkte URL, ellers genererer en
     els.btnTestApi.addEventListener('click', () => {
       if (lastTriedUrl) {
         window.open(lastTriedUrl, '_blank');
       } else {
-        // generer en “standard” URL og åpne den
-        const [name, latStr, lonStr] = els.loc.value.split('|');
+        const [_, latStr, lonStr] = els.loc.value.split('|');
         const lat = parseFloat(latStr), lon = parseFloat(lonStr);
         const startValue = els.start.value || todayLocalISODate();
         const startDate = new Date(startValue + 'T00:00:00');
@@ -617,13 +609,26 @@
       }
     });
 
+    // Tøm cache-knapp: sletter SW-cacher og SW-registrering, så laster på nytt
+    els.btnClearCache.addEventListener('click', async () => {
+      try {
+        const keys = await caches.keys();
+        await Promise.all(keys.map(k => caches.delete(k)));
+        if ('serviceWorker' in navigator) {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(regs.map(r => r.unregister()));
+        }
+      } catch (e) {}
+      location.reload(true);
+    });
+
     // Første last
     refresh();
 
-    // Service Worker
+    // Service Worker (ny cache-navn for å tvinge oppdatering)
     if ('serviceWorker' in navigator) {
       const swCode = `
-        const CACHE_NAME = 'tide-bergen-v3';
+        const CACHE_NAME = 'tide-bergen-${APP_VERSION}';
         const PRECACHE = [
           self.location.href,
           'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js',
