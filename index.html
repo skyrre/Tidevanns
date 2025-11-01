@@ -1,101 +1,90 @@
 <!DOCTYPE html><html lang="nb">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
   <title>Tidevann – Bergen (statisk)</title>  <base href="/Tidevanns/">
-  <meta name="description" content="Statisk tidevannsgraf for Bergen med lokal Tidevann.xml, pan/hover i et robust mørkt tema." />
+  <meta name="description" content="Statisk tidevannsgraf for Bergen med lokal Tidevann.xml, pan, og akseverdi i et mørkt tema." />
   <link rel="canonical" href="https://skyrre.github.io/Tidevanns/" />
-  <meta name="color-scheme" content="dark">  <style>
-    /* Alt er navngitt med tv-* for å unngå kollisjon med globale stiler (f.eks. .btn, .card) */
+  <meta name="theme-color" content="#0d1117" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="color-scheme" content="dark" />  <style>
+    /* Navneprefiks tv-* for å unngå kollisjoner med eksterne tema */
+    html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; background: #0d1117; }
     .tv-root {
-      --bg: #0d1117;
-      --fg: #c9d1d9;
-      --muted: #8b949e;
-      --accent: #58a6ff;
-      --grid: #1f242d;
-      --card: #0f141a;
-      --border: #30363d;
-
+      --bg: #0d1117; --fg: #c9d1d9; --muted: #8b949e; --accent: #58a6ff;
+      --grid: #1f242d; --card: #0f141a; --border: #30363d;
       --sea-top: #3b8fc7;   /* lysere blå i toppen */
       --sea-bottom: #0b2f49;/* mørkere blå nederst */
-      --land-top: #173329;  /* diskret grønnlig over kurven */
-      --land-bottom: #0e211c;
-
-      --tooltip-bg: rgba(13, 17, 23, 0.97);
-      --tooltip-border: rgba(255,255,255,0.08);
+      --tooltip-bg: rgba(13, 17, 23, 0.97); --tooltip-border: rgba(255,255,255,0.08);
       --shadow: 0 6px 24px rgba(0,0,0,0.35);
 
       color-scheme: dark;
-      background: var(--bg);
-      color: var(--fg);
-      min-height: 100vh;
+      background: var(--bg); color: var(--fg);
+      min-height: 100dvh;
+      padding-top: env(safe-area-inset-top);
+      padding-bottom: env(safe-area-inset-bottom);
+      display: flex; flex-direction: column;
       font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
       line-height: 1.45;
     }
     .tv-root *, .tv-root *::before, .tv-root *::after { box-sizing: border-box; }
-    html, body { margin: 0; padding: 0; background: #000 !important; } /* dekk ev. globale tema */
-    .tv-container { width: min(1100px, 100%); margin: 0 auto; padding: 16px; }
-    .tv-header { padding-top: 20px; }
-    .tv-h1 { font-size: 1.6rem; margin: 0 0 6px; }
-    .tv-sub { color: var(--muted); font-size: 0.95rem; margin-bottom: 14px; }
 
-    .tv-controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 10px 0 16px; }
+    .tv-container { width: min(1100px, 100%); margin: 0 auto; padding: 12px 16px; }
+    .tv-header { padding-top: 8px; }
+    .tv-h1 { font-size: 1.5rem; margin: 0 0 6px; }
+    .tv-sub { color: var(--muted); font-size: 0.95rem; margin-bottom: 10px; }
+
+    .tv-controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0 10px; }
     .tv-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
     .tv-spacer { flex: 1; }
 
     .tv-btn {
-      appearance: none;
-      border: 1px solid var(--border);
-      background: #161b22;
-      color: var(--fg);
-      padding: 8px 12px;
-      border-radius: 10px;
-      cursor: pointer;
-      font-weight: 600;
-      box-shadow: var(--shadow);
+      appearance: none; border: 1px solid var(--border); background: #161b22; color: var(--fg);
+      padding: 8px 12px; border-radius: 10px; cursor: pointer; font-weight: 600; box-shadow: var(--shadow);
       transition: border-color .15s ease, background-color .15s ease, color .15s ease;
     }
     .tv-btn:hover { border-color: #3a434d; background: #19202a; }
     .tv-btn[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(88,166,255,0.18), var(--shadow); }
     .tv-btn-icon { width: 40px; height: 40px; display: inline-grid; place-items: center; font-size: 18px; padding: 0; }
 
+    .tv-main { flex: 1; display: flex; flex-direction: column; min-height: 0; }
     .tv-card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      overflow: clip;
-      box-shadow: var(--shadow);
+      background: var(--card); border: 1px solid var(--border); border-radius: 14px; overflow: clip; box-shadow: var(--shadow);
+      display: flex; flex-direction: column; min-height: 0; /* gjør at innhold kan vokse med flex */
     }
-    .tv-card h2 { font-size: 1rem; margin: 0; padding: 12px 14px; border-bottom: 1px solid var(--border); }
-    .tv-pad { padding: 12px; }
+    .tv-card h2 { font-size: 1rem; margin: 0; padding: 10px 14px; border-bottom: 1px solid var(--border); }
+    .tv-pad { flex: 1; display: flex; flex-direction: column; min-height: 0; padding: 10px 12px; }
 
-    .tv-legend { display: flex; gap: 14px; align-items: center; color: var(--muted); font-size: 0.9rem; margin-top: 8px; }
+    .tv-chart-wrap { position: relative; width: 100%; flex: 1; min-height: 240px; }
+    .tv-chart { width: 100%; height: 100%; display: block; }
+
+    .tv-legend { display: flex; gap: 14px; align-items: center; color: var(--muted); font-size: 0.9rem; margin-top: 6px; }
     .tv-swatch { width: 18px; height: 4px; border-radius: 3px; background: var(--accent); display: inline-block; vertical-align: middle; margin-right: 6px; }
 
     .tv-muted { color: var(--muted); }
-    .tv-stat-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 8px; }
-    .tv-stat { background: var(--card); border: 1px dashed var(--border); border-radius: 10px; padding: 10px; }
+    .tv-stat-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 6px; }
+    .tv-stat { background: var(--card); border: 1px dashed var(--border); border-radius: 10px; padding: 8px; }
     .tv-stat .tv-label { color: var(--muted); font-size: 0.85rem; }
-    .tv-stat .tv-val { font-weight: 700; font-size: 1.1rem; }
+    .tv-stat .tv-val { font-weight: 700; font-size: 1.05rem; }
 
-    .tv-chart-wrap { position: relative; width: 100%; height: 420px; }
-    .tv-chart { width: 100%; height: 100%; display: block; }
-
-    .tv-tooltip {
-      position: absolute; pointer-events: none; transform: translate(-50%, -100%);
-      background: var(--tooltip-bg); color: var(--fg); border: 1px solid var(--tooltip-border);
-      border-radius: 10px; padding: 8px 10px; font-size: 12px; white-space: nowrap; z-index: 5;
-      box-shadow: var(--shadow);
+    /* Skjul stats på små/kompakte skjermer for å unngå scrolling */
+    @media (max-width: 480px), (max-height: 680px) {
+      .tv-stat-grid { display: none; }
+      .tv-sub { display: none; }
+      .tv-controls { margin-top: 4px; }
+      .tv-container { padding: 8px 12px; }
+      .tv-card h2 { display: none; }
+      .tv-pad { padding: 8px; }
     }
-    .tv-tooltip .tv-em { font-weight: 700; }
 
-    .tv-footer { padding: 26px 16px 40px; color: var(--muted); text-align: center; }
+    .tv-footer { padding: 10px 16px 16px; color: var(--muted); text-align: center; font-size: 0.9rem; }
   </style></head>
 <body>
   <div class="tv-root">
     <header class="tv-container tv-header">
       <h1 class="tv-h1" id="title">Tidevann – (statisk)</h1>
-      <div class="tv-sub" id="subtitle">Leser data fra Tidevann.xml (ingen API-kall). Bla med piltaster/knapper eller dra i grafen.</div>  <div class="tv-controls">
+      <div class="tv-sub" id="subtitle">Leser data fra Tidevann.xml. Bla med piltaster/knapper eller dra i grafen.</div>  <div class="tv-controls">
     <div class="tv-row" role="group" aria-label="Tidsvalg">
       <button class="tv-btn" data-range="1d" aria-pressed="true">I dag (24t)</button>
       <button class="tv-btn" data-range="3d">Neste 3 dager</button>
@@ -117,13 +106,13 @@
   </div>
 </header>
 
-<main class="tv-container">
+<main class="tv-container tv-main">
   <section class="tv-card" style="grid-column: 1 / -1;">
     <h2>Graf</h2>
     <div class="tv-pad">
       <div class="tv-chart-wrap" id="chart-wrap">
         <canvas class="tv-chart" id="chart" aria-label="Tidevannsgraf"></canvas>
-        <div class="tv-tooltip" id="tooltip" style="display:none"></div>
+        <!-- Tooltip fjernet (mobil), vi viser heller tall ved Y-aksen -->
       </div>
       <div class="tv-legend">
         <span><span class="tv-swatch"></span>Vannstand (m)</span>
@@ -133,13 +122,13 @@
         <div class="tv-stat"><div class="tv-label">Maksimum (visning)</div><div class="tv-val" id="stat-max">–</div></div>
         <div class="tv-stat"><div class="tv-label">Snitt (visning)</div><div class="tv-val" id="stat-avg">–</div></div>
       </div>
-      <div class="tv-muted" style="margin-top:8px" id="stat-info">–</div>
+      <div class="tv-muted" style="margin-top:6px" id="stat-info">–</div>
     </div>
   </section>
 </main>
 
 <footer class="tv-footer">
-  Tid vises i din lokale tidssone (<span id="tz"></span>). Dra for å bla. Bruk piltaster ← → for å flytte vinduet.
+  Tid vises i din lokale tidssone (<span id="tz"></span>). Legg til på hjem-skjermen for app-opplevelse.
 </footer>
   </div>  <script>
     const XML_URLS = ['Tidevann.xml', 'https://skyrre.github.io/Tidevanns/Tidevann.xml'];
@@ -156,6 +145,7 @@
     document.addEventListener('DOMContentLoaded', () => {
       $('#tz').textContent = Intl.DateTimeFormat().resolvedOptions().timeZone || 'lokal tid';
 
+      // Range-knapper
       $$('.tv-btn[data-range]').forEach(btn => {
         btn.addEventListener('click', () => {
           $$('.tv-btn[data-range]').forEach(b => b.setAttribute('aria-pressed', 'false'));
@@ -167,13 +157,16 @@
         });
       });
 
+      // Pan-knapper / piltaster
       $('#pan-left').addEventListener('click', () => panBy(-0.5));
       $('#pan-right').addEventListener('click', () => panBy(0.5));
-
       window.addEventListener('keydown', (e) => {
         if (e.key === 'ArrowLeft') { panBy(-0.5); e.preventDefault(); }
         else if (e.key === 'ArrowRight') { panBy(0.5); e.preventDefault(); }
       });
+
+      // Dra for å panorere
+      setupDragPan();
 
       loadXml();
       window.addEventListener('resize', debounce(renderChart, 80));
@@ -206,7 +199,6 @@
 
         viewLenMs = rangeToMs(currentRangeKey);
         placeWindowAroundNow();
-        setupInteractions();
         renderAll();
       } catch (err) {
         console.error(err);
@@ -252,114 +244,53 @@
       renderAll();
     }
 
-    function setupInteractions() {
+    function setupDragPan() {
       const canvas = $('#chart');
       const wrap = $('#chart-wrap');
-
       let dragging = false;
       let dragStartX = 0;
       let startFrom = 0, startTo = 0;
-      let hoverPoint = null;
 
-      const getPlotGeom = () => {
-        const dpr = Math.max(1, window.devicePixelRatio || 1);
-        const w = wrap.clientWidth;
-        const h = wrap.clientHeight;
-        const pad = { L: 56, R: 16, T: 20, B: 32 };
-        return { dpr, w, h, pad, plotW: w - pad.L - pad.R, plotH: h - pad.T - pad.B };
-      };
-
-      function clientToTime(xClient) {
-        const { pad, plotW } = getPlotGeom();
-        const rect = canvas.getBoundingClientRect();
-        const x = xClient - rect.left;
-        const tMin = viewFrom.getTime();
-        const tMax = viewTo.getTime();
-        const clamped = Math.max(pad.L, Math.min(rect.width - pad.R, x));
-        const ratio = (clamped - pad.L) / plotW;
-        return new Date(tMin + ratio * (tMax - tMin));
+      function getPlotW() {
+        const pad = { L: 56, R: 16 };
+        return { pad, plotW: wrap.clientWidth - pad.L - pad.R };
       }
 
-      function onPointerDown(e) {
+      canvas.addEventListener('pointerdown', (e) => {
         dragging = true;
         const pt = ('touches' in e && e.touches && e.touches[0]) ? e.touches[0] : e;
         dragStartX = pt.clientX;
         startFrom = viewFrom.getTime();
         startTo = viewTo.getTime();
         canvas.setPointerCapture?.(e.pointerId || 1);
-      }
-      function onPointerMove(e) {
+      });
+      window.addEventListener('pointermove', (e) => {
+        if (!dragging) return;
         const pt = ('touches' in e && e.touches && e.touches[0]) ? e.touches[0] : e;
-        const t = clientToTime(pt.clientX);
-        hoverPoint = nearestPointAtTime(t);
-        positionTooltip(pt.clientX, pt.clientY, hoverPoint);
-        if (dragging) {
-          const { plotW } = getPlotGeom();
-          const span = startTo - startFrom;
-          const dx = pt.clientX - dragStartX;
-          const dt = -dx / plotW * span;
-          let s = startFrom + dt;
-          let e2 = startTo + dt;
-          const min = dataExtent.tMin.getTime();
-          const max = dataExtent.tMax.getTime();
-          if (s < min) { e2 += (min - s); s = min; }
-          if (e2 > max) { s -= (e2 - max); e2 = max; }
-          viewFrom = new Date(s);
-          viewTo = new Date(e2);
-          renderAll(hoverPoint);
-        } else {
-          renderAll(hoverPoint);
-        }
-      }
-      function onPointerUp(e) {
+        const { plotW } = getPlotW();
+        const span = startTo - startFrom;
+        const dx = pt.clientX - dragStartX;
+        const dt = -dx / plotW * span;
+        let s = startFrom + dt;
+        let e2 = startTo + dt;
+        const min = dataExtent.tMin.getTime();
+        const max = dataExtent.tMax.getTime();
+        if (s < min) { e2 += (min - s); s = min; }
+        if (e2 > max) { s -= (e2 - max); e2 = max; }
+        viewFrom = new Date(s);
+        viewTo = new Date(e2);
+        renderAll();
+      });
+      window.addEventListener('pointerup', (e) => {
         dragging = false;
         canvas.releasePointerCapture?.(e.pointerId || 1);
-      }
-      function onLeave() {
-        hoverPoint = null;
-        $('#tooltip').style.display = 'none';
-        renderAll();
-      }
-
-      canvas.addEventListener('pointerdown', onPointerDown);
-      window.addEventListener('pointermove', onPointerMove);
-      window.addEventListener('pointerup', onPointerUp);
-      canvas.addEventListener('pointerleave', onLeave);
+      });
+      canvas.addEventListener('pointerleave', () => { dragging = false; });
     }
 
-    function positionTooltip(clientX, clientY, p) {
-      const tip = $('#tooltip');
-      const wrap = $('#chart-wrap');
-      if (!p) { tip.style.display = 'none'; return; }
-      tip.style.display = 'block';
-      tip.innerHTML = `<span class="tv-em">${fmtNum(p.v)} m</span><br>${fmtDateTime(p.t)}${p.src ? ` • ${srcLabel(p.src)}` : ''}`;
-      const rect = wrap.getBoundingClientRect();
-      const x = clientX - rect.left;
-      const y = clientY - rect.top;
-      tip.style.left = `${x}px`;
-      tip.style.top = `${y - 10}px`;
-    }
-
-    function nearestPointAtTime(t) {
-      if (!allPoints.length) return null;
-      const t0 = viewFrom.getTime(), t1 = viewTo.getTime();
-      let lo = lowerBound(allPoints, t0);
-      let hi = upperBound(allPoints, t1);
-      if (hi <= lo) { lo = 0; hi = allPoints.length; }
-      let best = null, bestDt = Infinity;
-      for (let i = lo; i < hi; i++) {
-        const p = allPoints[i];
-        const dt = Math.abs(p.t - t);
-        if (dt < bestDt) { best = p; bestDt = dt; }
-      }
-      return best;
-    }
-    function lowerBound(arr, t) { let l = 0, r = arr.length; while (l < r) { const m = (l + r) >> 1; (arr[m].t.getTime() < t ? l = m + 1 : r = m); } return l; }
-    function upperBound(arr, t) { let l = 0, r = arr.length; while (l < r) { const m = (l + r) >> 1; (arr[m].t.getTime() <= t ? l = m + 1 : r = m); } return l; }
-
-    function renderAll(hoverPoint = null) {
+    function renderAll() {
       renderStats();
-      renderChart(hoverPoint);
+      renderChart();
     }
 
     function filteredInView() {
@@ -367,6 +298,7 @@
       const from = viewFrom, to = viewTo;
       const lo = lowerBound(allPoints, from.getTime());
       const hi = upperBound(allPoints, to.getTime());
+      // ta med ett punkt på hver side for bedre interpolasjon
       return allPoints.slice(Math.max(0, lo - 1), Math.min(allPoints.length, hi + 1));
     }
 
@@ -389,7 +321,7 @@
       $$('#stat-info').textContent = `Viser $${fmtDateTime(viewFrom)} → ${fmtDateTime(viewTo)} • Punkter: ${pts.length}`;
     }
 
-    function renderChart(hoverPoint = null) {
+    function renderChart() {
       const wrap = $('#chart-wrap');
       const canvas = $('#chart');
       const dpr = Math.max(1, window.devicePixelRatio || 1);
@@ -410,7 +342,8 @@
 
       const pts = filteredInView();
       if (!pts.length) {
-        ctx.fillStyle = getCSS('--muted'); ctx.font = '14px system-ui,-apple-system,Segoe UI,Roboto,Arial';
+        ctx.fillStyle = getCSS('--muted');
+        ctx.font = '14px system-ui,-apple-system,Segoe UI,Roboto,Arial';
         ctx.fillText('Ingen data i visningsvinduet', pad.L + 8, pad.T + 16);
         return;
       }
@@ -428,11 +361,8 @@
       const xOf = (t) => pad.L + (t - tMin) / (tMax - tMin) * plotW;
       const yOf = (v) => pad.T + plotH - (v - vMin) / (vMax - vMin) * plotH;
 
-      // Bakgrunn (land)
-      const landGrad = ctx.createLinearGradient(0, pad.T, 0, pad.T + plotH);
-      landGrad.addColorStop(0, getCSS('--land-top'));
-      landGrad.addColorStop(1, getCSS('--land-bottom'));
-      ctx.fillStyle = landGrad;
+      // Bakgrunn (samme mørke som kortet – ikke grønn)
+      ctx.fillStyle = getCSS('--card');
       ctx.fillRect(pad.L, pad.T, plotW, plotH);
 
       // Kurvesti
@@ -459,11 +389,11 @@
       ctx.fillRect(pad.L, pad.T, plotW, plotH);
       ctx.restore();
 
-      // Grid
+      // Rutenett
       ctx.strokeStyle = getCSS('--grid');
       ctx.lineWidth = 1;
 
-      // Y-ticks
+      // Y-aksen ticks
       const yTicks = niceTicks(vMin, vMax, 5);
       ctx.beginPath();
       for (const yv of yTicks) {
@@ -472,7 +402,7 @@
       }
       ctx.stroke();
 
-      // X-ticks
+      // X-aksen ticks
       const xTicks = timeTicks(new Date(tMin), new Date(tMax), plotW);
       ctx.beginPath();
       for (const xt of xTicks) {
@@ -481,7 +411,7 @@
       }
       ctx.stroke();
 
-      // Labels
+      // Akselabels
       ctx.fillStyle = getCSS('--muted');
       ctx.font = '12px system-ui,-apple-system,Segoe UI,Roboto,Arial';
       ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
@@ -519,22 +449,70 @@
       });
       ctx.stroke();
 
-      // Hover
-      if (hoverPoint) {
-        const xh = xOf(hoverPoint.t.getTime());
-        const yh = yOf(hoverPoint.v);
-        ctx.strokeStyle = 'rgba(255,255,255,0.4)';
-        ctx.lineWidth = 1;
+      // Fast verdi ved Y-aksen (1 desimal): v(t = viewFrom)
+      const vAxis = interpolateAtTime(viewFrom.getTime(), pts);
+      if (Number.isFinite(vAxis)) {
+        const y = yOf(vAxis);
+        // liten markør på aksen
+        ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+        ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.moveTo(xh + 0.5, pad.T);
-        ctx.lineTo(xh + 0.5, pad.T + plotH);
+        ctx.moveTo(pad.L - 4, y);
+        ctx.lineTo(pad.L + 4, y);
         ctx.stroke();
 
-        ctx.fillStyle = getCSS('--accent');
-        ctx.beginPath();
-        ctx.arc(xh, yh, 3, 0, Math.PI * 2);
-        ctx.fill();
+        // etikett inne i plottet
+        const label = `${vAxis.toFixed(1)} m`;
+        drawLabel(ctx, pad.L + 8, y - 10, label);
       }
+    }
+
+    // Interpoler verdi ved tid t (ms) basert på nærmeste datapunkter i pts (sortert)
+    function interpolateAtTime(t, pts) {
+      if (!pts.length) return NaN;
+      if (t <= pts[0].t.getTime()) return pts[0].v;
+      if (t >= pts[pts.length-1].t.getTime()) return pts[pts.length-1].v;
+      // finn nabopar
+      let i = 1;
+      while (i < pts.length && pts[i].t.getTime() < t) i++;
+      const p1 = pts[i-1], p2 = pts[i];
+      const t1 = p1.t.getTime(), t2 = p2.t.getTime();
+      const v1 = p1.v, v2 = p2.v;
+      const a = (t - t1) / (t2 - t1);
+      return v1 + a * (v2 - v1);
+    }
+
+    function drawLabel(ctx, x, y, text) {
+      ctx.font = '12px system-ui,-apple-system,Segoe UI,Roboto,Arial';
+      const paddingX = 6, paddingY = 4;
+      const metrics = ctx.measureText(text);
+      const w = metrics.width + paddingX * 2;
+      const h = 18;
+      const rx = 8;
+      const yTop = y - h + 2;
+      // bakgrunn
+      ctx.fillStyle = getCSS('--tooltip-bg');
+      roundRect(ctx, x, yTop, w, h, rx);
+      ctx.fill();
+      ctx.strokeStyle = getCSS('--tooltip-border');
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      // tekst
+      ctx.fillStyle = getCSS('--fg');
+      ctx.textBaseline = 'middle';
+      ctx.textAlign = 'left';
+      ctx.fillText(text, x + paddingX, yTop + h / 2);
+    }
+
+    function roundRect(ctx, x, y, w, h, r) {
+      r = Math.min(r, w/2, h/2);
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y, x + w, y + h, r);
+      ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r);
+      ctx.arcTo(x, y, x + w, y, r);
+      ctx.closePath();
     }
 
     // Utils
@@ -570,7 +548,8 @@
       return ticks;
     }
     function alignTime(d, stepMs) { const t = +d; if (stepMs >= 24*3600e3) return new Date(d.getFullYear(), d.getMonth(), d.getDate()); return new Date(Math.floor(t / stepMs) * stepMs); }
-    function srcLabel(s) { if (s === 'obs') return 'Observasjon'; if (s === 'pred') return 'Prognose'; if (s === 'H') return 'Høyvann'; if (s === 'L') return 'Lavvann'; return s; }
+    function lowerBound(arr, t) { let l = 0, r = arr.length; while (l < r) { const m = (l + r) >> 1; (arr[m].t.getTime() < t ? l = m + 1 : r = m); } return l; }
+    function upperBound(arr, t) { let l = 0, r = arr.length; while (l < r) { const m = (l + r) >> 1; (arr[m].t.getTime() <= t ? l = m + 1 : r = m); } return l; }
 
     async function fetchFirstWorking(urls) {
       let lastErr = null;
