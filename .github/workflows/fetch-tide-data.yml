@@ -1,11 +1,9 @@
 name: Fetch Tide Data
 
 on:
-  # Manuell trigger via GitHub UI
-  workflow_dispatch: {}
-  # Automatisk: månedlig (1. hver måned kl 03:20 UTC)
+  workflow_dispatch:
   schedule:
-    - cron: "20 3 1 * *"
+    - cron: "20 3 1 * *"  # månedlig
 
 permissions:
   contents: write
@@ -23,30 +21,34 @@ jobs:
           set -euo pipefail
           FROM=$(date -u -d "365 days ago" +%Y-%m-%d)
           TO=$(date -u -d "tomorrow" +%Y-%m-%d)
-          echo "from=$FROM" >> "$GITHUB_OUTPUT"
-          echo "to=$TO" >> "$GITHUB_OUTPUT"
+          echo "from=$$FROM" >> "$$GITHUB_OUTPUT"
+          echo "to=$$TO" >> "$$GITHUB_OUTPUT"
+
+      - name: Build URL (use secret if set)
+        id: build
+        env:
+          TIDE_API_URL: ${{ secrets.TIDE_API_URL }}
+        run: |
+          set -euo pipefail
+          if [ -n "${TIDE_API_URL:-}" ]; then
+            echo "url=$$TIDE_API_URL" >> "$$GITHUB_OUTPUT"
+          else
+            PLACE="Bergen"
+            REFCODE="cd"
+            INTERVAL="10"
+            FROM="${{ steps.dates.outputs.from }}"
+            TO="${{ steps.dates.outputs.to }}"
+            echo "url=https://api.sehavniva.no/tideapi.php?place=$${PLACE}&file=xml&datatype=all&interval=$${INTERVAL}&refcode=$${REFCODE}&fromtime=$${FROM}&totime=$${TO}" >> "$$GITHUB_OUTPUT"
+          fi
 
       - name: Download XML from Kartverket
-        env:
-          PLACE: "Bergen"
-          REFCODE: "cd"     # Juster ved behov (f.eks. "cd", "LAT", etc.)
-          INTERVAL: "10"    # Minuttintervall mellom punkter (10 gir fin kurve)
         run: |
           set -euo pipefail
           mkdir -p Tidevanns
-
-          FROM="${{ steps.dates.outputs.from }}"
-          TO="${{ steps.dates.outputs.to }}"
-          # Merk: API-parametre her er typiske. Juster hvis du har brukt andre tidligere.
-          URL="https://api.sehavniva.no/tideapi.php?place=${PLACE}&file=xml&datatype=all&interval=${INTERVAL}&refcode=${REFCODE}&fromtime=${FROM}&totime=${TO}"
+          URL="${{ steps.build.outputs.url }}"
           echo "Fetching: $URL"
-
           curl -fsSL "$URL" -o Tidevanns/Tidevann.xml.tmp
-
-          # Enkel validering for å unngå å committe feilside/HTML
-          head -c 6000 Tidevanns/Tidevann.xml.tmp | grep -Eiq '<(tide|waterlevel)\b' || {
-            echo "Validation failed: expected <tide> or <waterlevel> element."; exit 1; }
-
+          head -c 8000 Tidevanns/Tidevann.xml.tmp | grep -Eiq '<(tide|waterlevel)\b'
           mv -f Tidevanns/Tidevann.xml.tmp Tidevanns/Tidevann.xml
 
       - name: Commit if changed
@@ -61,23 +63,3 @@ jobs:
           git add Tidevanns/Tidevann.xml
           git commit -m "Update Tidevann.xml (auto via GH Actions)"
           git push
-Notater
-Hyppighet: Cron er satt månedlig. Vil du oftere? Eksempler:
-
-Ukentlig: 15 3 * * 1 (hver mandag 03:15 UTC)
-Daglig: 10 2 * * * (hver dag 02:10 UTC)
-
-
-Område/parametre:
-
-PLACE: sett til ønsket sted (du brukte Bergen).
-INTERVAL: 10 gir jevn kurve; større tall gir mindre fil.
-REFCODE: behold det du brukte i manuell nedlasting (f.eks. “cd”).
-
-
-Frontend: Ingen endringer nødvendig – HTML-en din leser fortsatt Tidevann.xml lokalt.
-Første kjøring: Kjør manuelt én gang for å legge inn første oppdaterte fil og verifisere resultatet i repoet.
-Repo:
-  Tidevanns/
-    Tidevann.xml   ← blir oppdatert automatisk
-  .github/workflows/fetch-tide-data.yml
