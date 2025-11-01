@@ -1,26 +1,17 @@
-<!DOCTYPE html>
-<html lang="nb">
+<!DOCTYPE html><html lang="nb">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
-  <title>Tidevann i Bergen</title>
-
-  <base href="/Tidevanns/">
-  <meta name="description" content="Statisk tidevannsgraf med lokal Tidevann.xml, dag/natt-bakgrunn, nå-linje og mørkt tema." />
+  <title>Tidevann i Bergen</title>  <!-- Viktig for GitHub Project Pages under /Tidevanns/ -->  <base href="/Tidevanns/">  <meta name="description" content="Statisk tidevannsgraf med lokal Tidevann.xml, dag/natt-bakgrunn, nå-linje og mørkt tema." />
   <link rel="canonical" href="https://skyrre.github.io/Tidevanns/" />
   <meta name="theme-color" content="#0d1117" />
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="color-scheme" content="dark" />
-
-  <!-- App icons -->
-  <meta name="apple-mobile-web-app-title" content="Tidevann i Bergen">
+  <meta name="color-scheme" content="dark" />  <!-- App-ikoner -->  <meta name="apple-mobile-web-app-title" content="Tidevann i Bergen">
   <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon-180.png">
   <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16.png">
-  <link rel="manifest" href="site.webmanifest">
-
-  <style>
+  <link rel="manifest" href="site.webmanifest">  <style>
     html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; background: #0d1117; }
     .tv-root {
       --bg: #0d1117; --fg: #c9d1d9; --muted: #8b949e; --accent: #58a6ff;
@@ -79,6 +70,7 @@
     .tv-stat .tv-label { color: var(--muted); font-size: 0.85rem; }
     .tv-stat .tv-val { font-weight: 700; font-size: 1.05rem; }
 
+    /* Kompakt mobil */
     @media (max-width: 480px), (max-height: 700px) {
       .tv-sub { display: none; }
       .tv-stat-grid { display: none; }
@@ -86,52 +78,49 @@
       .tv-container { padding: 8px 10px; }
       .tv-pad { padding: 8px; }
     }
-    @media (max-height: 640px) { .tv-footer { display: none; } }
+    @media (max-height: 640px) {
+      .tv-footer { display: none; }
+    }
 
     .tv-footer { padding: 10px 16px 16px; color: var(--muted); text-align: center; font-size: 0.9rem; }
-  </style>
-</head>
+  </style></head>
 <body>
   <div class="tv-root">
     <header class="tv-container tv-header">
       <h1 class="tv-h1" id="title">Tidevann i Bergen</h1>
-      <div class="tv-sub" id="subtitle">Leser data fra Tidevann.xml. Dra i grafen eller bruk piltaster for å bla.</div>
-
-      <div class="tv-controls">
-        <div class="tv-row" role="group" aria-label="Tidsvalg">
-          <button class="tv-btn" data-range="1d" aria-pressed="true">24 t</button>
-          <button class="tv-btn" data-range="3d">3 døgn</button>
-          <button class="tv-btn" data-range="7d">7 døgn</button>
-        </div>
-      </div>
-    </header>
-
-    <main class="tv-container tv-main">
-      <section class="tv-card" style="grid-column: 1 / -1;">
-        <h2>Graf</h2>
-        <div class="tv-pad">
-          <div class="tv-chart-wrap" id="chart-wrap">
-            <canvas class="tv-chart" id="chart" aria-label="Tidevannsgraf"></canvas>
-          </div>
-          <div class="tv-legend">
-            <span><span class="tv-swatch"></span>Vannstand (m)</span>
-          </div>
-          <div class="tv-stat-grid">
-            <div class="tv-stat"><div class="tv-label">Minimum (visning)</div><div class="tv-val" id="stat-min">–</div></div>
-            <div class="tv-stat"><div class="tv-label">Maksimum (visning)</div><div class="tv-val" id="stat-max">–</div></div>
-            <div class="tv-stat"><div class="tv-label">Snitt (visning)</div><div class="tv-val" id="stat-avg">–</div></div>
-          </div>
-          <div class="tv-muted" style="margin-top:6px" id="stat-info">–</div>
-        </div>
-      </section>
-    </main>
-
-    <footer class="tv-footer">
-      Tid vises i din lokale tidssone (<span id="tz"></span>). Legg til på hjem-skjermen for app-opplevelse.
-    </footer>
+      <div class="tv-sub" id="subtitle">Leser data fra Tidevann.xml. Dra i grafen eller bruk piltaster for å bla.</div>  <div class="tv-controls">
+    <div class="tv-row" role="group" aria-label="Tidsvalg">
+      <button class="tv-btn" data-range="1d" aria-pressed="true">24 t</button>
+      <button class="tv-btn" data-range="3d">3 døgn</button>
+      <button class="tv-btn" data-range="7d">7 døgn</button>
+    </div>
   </div>
+</header>
 
-  <script>
+<main class="tv-container tv-main">
+  <section class="tv-card" style="grid-column: 1 / -1;">
+    <h2>Graf</h2>
+    <div class="tv-pad">
+      <div class="tv-chart-wrap" id="chart-wrap">
+        <canvas class="tv-chart" id="chart" aria-label="Tidevannsgraf"></canvas>
+      </div>
+      <div class="tv-legend">
+        <span><span class="tv-swatch"></span>Vannstand (m)</span>
+      </div>
+      <div class="tv-stat-grid">
+        <div class="tv-stat"><div class="tv-label">Minimum (visning)</div><div class="tv-val" id="stat-min">–</div></div>
+        <div class="tv-stat"><div class="tv-label">Maksimum (visning)</div><div class="tv-val" id="stat-max">–</div></div>
+        <div class="tv-stat"><div class="tv-label">Snitt (visning)</div><div class="tv-val" id="stat-avg">–</div></div>
+      </div>
+      <div class="tv-muted" style="margin-top:6px" id="stat-info">–</div>
+    </div>
+  </section>
+</main>
+
+<footer class="tv-footer">
+  Tid vises i din lokale tidssone (<span id="tz"></span>). Legg til på hjem-skjermen for app-opplevelse.
+</footer>
+  </div>  <script>
     const XML_URLS = ['Tidevann.xml', 'https://skyrre.github.io/Tidevanns/Tidevann.xml'];
 
     let allPoints = [];
@@ -193,7 +182,7 @@
           const titleTxt = `Tidevann i ${SITE.name}`;
           document.title = titleTxt;
           $('#title').textContent = titleTxt;
-          $('#subtitle').textContent = `Lokal fil: Tidevann.xml (enhet: meter, ref: ${SITE.ref || '—'})`;
+          $$('#subtitle').textContent = `Lokal fil: Tidevann.xml (enhet: meter, ref: $${SITE.ref || '—'})`;
         }
 
         const tMin = allPoints[0].t;
@@ -208,7 +197,7 @@
         renderAll();
       } catch (err) {
         console.error(err);
-        $('#subtitle').textContent = `Feil ved lesing av Tidevann.xml: ${err.message}`;
+        $$('#subtitle').textContent = `Feil ved lesing av Tidevann.xml: $${err.message}`;
       }
     }
 
@@ -322,7 +311,7 @@
       $('#stat-min').textContent = `${fmtNum(vMin)} m`;
       $('#stat-max').textContent = `${fmtNum(vMax)} m`;
       $('#stat-avg').textContent = `${fmtNum(avg)} m`;
-      $('#stat-info').textContent = `Viser ${fmtDateTime(viewFrom)} → ${fmtDateTime(viewTo)} • Punkter: ${pts.length}`;
+      $$('#stat-info').textContent = `Viser $${fmtDateTime(viewFrom)} → ${fmtDateTime(viewTo)} • Punkter: ${pts.length}`;
     }
 
     function renderChart() {
@@ -539,7 +528,7 @@
         if (sun.alwaysDay) {
           fillDay(xOf(Math.max(dayStart, tMin)), xOf(Math.min(dayEnd, tMax)));
         } else if (sun.alwaysNight) {
-          // base = natt
+          // hopp (natt = base)
         } else if (sun.sunrise && sun.sunset) {
           const xs = Math.max(xOf(Math.max(sun.sunrise.getTime(), tMin)), pad.L);
           const xe = Math.min(xOf(Math.min(sun.sunset.getTime(), tMax)), pad.L + plotW);
@@ -624,7 +613,7 @@
       chartWrap.style.height = Math.max(minH, available) + 'px';
     }
 
-    // Utils
+    // Interpolasjon / tegnehjelpere / utils
     function interpolateAtTime(t, pts) {
       if (!pts.length) return NaN;
       if (t <= pts[0].t.getTime()) return pts[0].v;
@@ -726,6 +715,5 @@
       return { points: dedup, meta };
     }
     function findUnitAttr(el) { let cur = el; for (let i = 0; i < 5 && cur; i++) { if (cur.getAttribute) { const u = cur.getAttribute('unit') || cur.getAttribute('units') || cur.getAttribute('enhet'); if (u) return u.toLowerCase(); } cur = cur.parentElement; } return ''; }
-  </script>
-</body>
+  </script></body>
 </html>
