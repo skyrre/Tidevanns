@@ -3,7 +3,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
   <title>Tidevann – Bergen (statisk)</title>  <base href="/Tidevanns/">
-  <meta name="description" content="Statisk tidevannsgraf for Bergen med lokal Tidevann.xml, pan, nå-linje og mørkt tema." />
+  <meta name="description" content="Statisk tidevannsgraf med lokal Tidevann.xml, dag/natt-bakgrunn, nå-linje og mørkt tema." />
   <link rel="canonical" href="https://skyrre.github.io/Tidevanns/" />
   <meta name="theme-color" content="#0d1117" />
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -13,8 +13,9 @@
     .tv-root {
       --bg: #0d1117; --fg: #c9d1d9; --muted: #8b949e; --accent: #58a6ff;
       --grid: #1f242d; --card: #0f141a; --border: #30363d;
-      --sea-top: #3b8fc7;   /* lysere blå i toppen */
-      --sea-bottom: #0b2f49;/* mørkere blå nederst */
+      /* Vannfyll: lysere øverst → mørkere nederst */
+      --sea-top: #3b8fc7;
+      --sea-bottom: #0b2f49;
       --tooltip-bg: rgba(13, 17, 23, 0.97); --tooltip-border: rgba(255,255,255,0.08);
       --shadow: 0 6px 24px rgba(0,0,0,0.35);
 
@@ -55,7 +56,7 @@
     .tv-card h2 { font-size: 1rem; margin: 0; padding: 10px 14px; border-bottom: 1px solid var(--border); }
     .tv-pad { flex: 1; display: flex; flex-direction: column; min-height: 0; padding: 10px 12px; }
 
-    .tv-chart-wrap { position: relative; width: 100%; /* dynamisk høyde settes i JS */ }
+    .tv-chart-wrap { position: relative; width: 100%; }
     .tv-chart { width: 100%; height: 100%; display: block; }
 
     .tv-legend { display: flex; gap: 14px; align-items: center; color: var(--muted); font-size: 0.9rem; margin-top: 6px; }
@@ -138,7 +139,10 @@
     let viewFrom = null, viewTo = null;
     let viewLenMs = 24 * 3600e3; // 24t
     let currentRangeKey = '1d';
-    const PAGE_LOAD_TS = Date.now(); // "nå-linje" ved oppstart
+    const PAGE_LOAD_TS = Date.now(); // for "nå-linje"
+
+    // Lokasjon (hentes fra XML, fallback = Bergen)
+    let SITE = { name: '', code: '', ref: '', lat: 60.3913, lon: 5.3221 };
 
     const $ = (s) => document.querySelector(s);
     const $$ = (s) => Array.from(document.querySelectorAll(s));
@@ -169,7 +173,7 @@
       // Dra for å panorere
       setupDragPan();
 
-      // Layouthåndtering (fyll mer av skjermen uten scrolling)
+      // Layouthøyde (fyll mer av skjermen, uten scrolling)
       layoutHeights();
       window.addEventListener('resize', debounce(() => { layoutHeights(); renderChart(); }, 80));
       window.addEventListener('orientationchange', () => setTimeout(() => { layoutHeights(); renderChart(); }, 100));
@@ -186,11 +190,12 @@
 
         const parsed = parseSehavnivaXml(doc);
         allPoints = parsed.points;
+        SITE = { ...SITE, ...parsed.meta };
         if (!allPoints.length) throw new Error('Fant ingen waterlevel-punkter i XML');
 
-        if (parsed.meta.name) {
-          $$('#title').textContent = `Tidevann – $${parsed.meta.name} (statisk)`;
-          $$('#subtitle').textContent = `Lokal fil: Tidevann.xml (enhet: meter, ref: $${parsed.meta.ref || '—'})`;
+        if (SITE.name) {
+          $$('#title').textContent = `Tidevann – $${SITE.name} (statisk)`;
+          $$('#subtitle').textContent = `Lokal fil: Tidevann.xml (enhet: meter, ref: $${SITE.ref || '—'})`;
         }
 
         const tMin = allPoints[0].t;
@@ -203,7 +208,7 @@
         $$('#dataset-meta').textContent = `Punkter: $${allPoints.length} • Periode: ${fmtDate(tMin)} – ${fmtDate(tMax)}`;
 
         viewLenMs = rangeToMs(currentRangeKey);
-        placeWindowAroundNow(); // legge "nå" i venstrekant ved oppstart
+        placeWindowAroundNow(); // "nå" i venstrekant ved oppstart
         renderAll();
       } catch (err) {
         console.error(err);
@@ -220,11 +225,9 @@
 
     function placeWindowAroundNow() {
       if (!dataExtent) return;
-      // Start vinduet ved "nå" → til høyre viewLenMs
       let start = PAGE_LOAD_TS;
       let end = start + viewLenMs;
 
-      // Klem til datasettet
       const min = dataExtent.tMin.getTime();
       const max = dataExtent.tMax.getTime();
       if (end > max) { end = max; start = Math.max(min, end - viewLenMs); }
@@ -275,6 +278,7 @@
         const pt = ('touches' in e && e.touches && e.touches[0]) ? e.touches[0] : e;
         const { plotW } = getPlotW();
         const span = startTo - startFrom;
+        thedx = pt.clientX - dragStartX;
         const dx = pt.clientX - dragStartX;
         const dt = -dx / plotW * span;
         let s = startFrom + dt;
@@ -366,9 +370,12 @@
       const xOf = (t) => pad.L + (t - tMin) / (tMax - tMin) * plotW;
       const yOf = (v) => pad.T + plotH - (v - vMin) / (vMax - vMin) * plotH;
 
-      // Bakgrunn (samme mørke)
+      // Bakgrunn
       ctx.fillStyle = getCSS('--card');
       ctx.fillRect(pad.L, pad.T, plotW, plotH);
+
+      // Dag/natt-bakgrunn over hele plottet (basert på lat/lon og dato)
+      drawDaylightShading(ctx, pad, plotW, plotH, tMin, tMax, SITE.lat, SITE.lon, xOf);
 
       // Kurvesti
       const path = new Path2D();
@@ -454,7 +461,7 @@
       });
       ctx.stroke();
 
-      // Fast verdi ved Y-aksen (1 desimal): v(t = viewFrom)
+      // Verdi ved Y-aksen (1 desimal)
       const vAxis = interpolateAtTime(viewFrom.getTime(), pts);
       if (Number.isFinite(vAxis)) {
         const y = yOf(vAxis);
@@ -464,12 +471,10 @@
         ctx.moveTo(pad.L - 4, y);
         ctx.lineTo(pad.L + 4, y);
         ctx.stroke();
-
-        const label = `${vAxis.toFixed(1)} m`;
-        drawLabel(ctx, pad.L + 8, y - 10, label);
+        drawLabel(ctx, pad.L + 8, y - 10, `${vAxis.toFixed(1)} m`);
       }
 
-      // Nå-linje (basert på tidspunkt ved sidelast): synlig kun hvis innenfor visning
+      // Nå-linje (ved sidelast), vises kun hvis innenfor
       if (PAGE_LOAD_TS >= tMin && PAGE_LOAD_TS <= tMax) {
         const xNow = xOf(PAGE_LOAD_TS);
         ctx.strokeStyle = 'rgba(255,255,255,0.55)';
@@ -480,8 +485,96 @@
         ctx.lineTo(Math.round(xNow) + 0.5, pad.T + plotH);
         ctx.stroke();
         ctx.setLineDash([]);
-        // liten “Nå”-etikett øverst
         drawLabel(ctx, Math.min(xNow + 8, w - pad.R - 60), pad.T + 6, 'Nå');
+      }
+    }
+
+    // Dag/natt-bakgrunn basert på solopp-/nedgang (SunCalc-lignende)
+    function drawDaylightShading(ctx, pad, plotW, plotH, tMin, tMax, lat, lon, xOf) {
+      const dayStartLocal = (dms) => {
+        const d = new Date(dms);
+        return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0);
+      };
+      let day = dayStartLocal(tMin);
+      const endDay = dayStartLocal(tMax + 24*3600e3);
+
+      while (day <= endDay) {
+        const sun = getSunTimes(day, lat, lon);
+        const dayStart = day.getTime();
+        const dayEnd = dayStart + 24*3600e3;
+
+        if (sun.alwaysDay) {
+          // Hele døgnet er dag
+          const xs = Math.max(xOf(Math.max(dayStart, tMin)), pad.L);
+          const xe = Math.min(xOf(Math.min(dayEnd, tMax)), pad.L + plotW);
+          if (xe > xs) fillDayGradient(xs, xe);
+        } else if (sun.alwaysNight) {
+          // Hele døgnet natt → bakgrunn er allerede mørk, hopp
+        } else if (sun.sunrise && sun.sunset) {
+          const sr = sun.sunrise.getTime();
+          const ss = sun.sunset.getTime();
+          const xs = Math.max(xOf(Math.max(sr, tMin)), pad.L);
+          const xe = Math.min(xOf(Math.min(ss, tMax)), pad.L + plotW);
+          if (xe > xs) fillDayGradient(xs, xe);
+        }
+        day = new Date(day.getFullYear(), day.getMonth(), day.getDate() + 1);
+      }
+
+      function fillDayGradient(xs, xe) {
+        const grad = ctx.createLinearGradient(xs, 0, xe, 0);
+        grad.addColorStop(0.00, 'rgba(255,255,255,0.03)');
+        grad.addColorStop(0.50, 'rgba(255,255,255,0.07)');
+        grad.addColorStop(1.00, 'rgba(255,255,255,0.03)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(xs, pad.T, xe - xs, plotH);
+      }
+    }
+
+    // Soltider (SunCalc-aktig implementasjon, UTC-basert)
+    const RAD = Math.PI / 180;
+    const J1970 = 2440588;
+    const J2000 = 2451545;
+    const DAY_MS = 86400000;
+    function toJulian(date) { return date.valueOf() / DAY_MS - 0.5 + J1970; }
+    function fromJulian(j) { return new Date((j + 0.5 - J1970) * DAY_MS); }
+    function toDays(date) { return toJulian(date) - J2000; }
+    function solarMeanAnomaly(d) { return RAD * (357.5291 + 0.98560028 * d); }
+    function eclipticLongitude(M) {
+      const C = RAD * (1.9148 * Math.sin(M) + 0.02 * Math.sin(2 * M) + 0.0003 * Math.sin(3 * M));
+      const P = RAD * 102.9372;
+      return M + C + P + Math.PI;
+    }
+    function declination(L) {
+      const e = RAD * 23.4397;
+      return Math.asin(Math.sin(e) * Math.sin(L));
+    }
+    function getSunTimes(localDay, lat, lon) {
+      // Bruk UTC-midnatt av denne lokale datoen for stabil beregning
+      const Y = localDay.getFullYear(), M = localDay.getMonth(), D = localDay.getDate();
+      const dateUTC = new Date(Date.UTC(Y, M, D, 0, 0, 0));
+      const lw = -lon * RAD, phi = lat * RAD;
+      const d = toDays(dateUTC);
+      const n = Math.round(d - 0.0009 - lw / (2 * Math.PI));
+      const ds = n + 0.0009 + lw / (2 * Math.PI);
+      const Msol = solarMeanAnomaly(ds);
+      const L = eclipticLongitude(Msol);
+      const dec = declination(L);
+      const Jnoon = J2000 + ds + 0.0053 * Math.sin(Msol) - 0.0069 * Math.sin(2 * L);
+
+      const h0 = -0.83 * RAD; // solskive og refraksjon
+      const cosOmega0 = (Math.sin(h0) - Math.sin(phi) * Math.sin(dec)) / (Math.cos(phi) * Math.cos(dec));
+
+      if (cosOmega0 <= -1) {
+        // Sol over horisonten hele døgnet
+        return { sunrise: null, sunset: null, alwaysDay: true, alwaysNight: false, solarNoon: fromJulian(Jnoon) };
+      } else if (cosOmega0 >= 1) {
+        // Sol under horisonten hele døgnet
+        return { sunrise: null, sunset: null, alwaysDay: false, alwaysNight: true, solarNoon: fromJulian(Jnoon) };
+      } else {
+        const omega0 = Math.acos(cosOmega0);
+        const Jset = Jnoon + omega0 / (2 * Math.PI);
+        const Jrise = Jnoon - omega0 / (2 * Math.PI);
+        return { sunrise: fromJulian(Jrise), sunset: fromJulian(Jset), alwaysDay: false, alwaysNight: false, solarNoon: fromJulian(Jnoon) };
       }
     }
 
@@ -491,19 +584,17 @@
       const header = document.querySelector('.tv-header');
       const footer = document.querySelector('.tv-footer');
       const chartWrap = document.getElementById('chart-wrap');
-      const cardPad = document.querySelector('.tv-pad');
       const legend = document.querySelector('.tv-legend');
       const stats = document.querySelector('.tv-stat-grid');
 
       const headerH = header ? header.getBoundingClientRect().height : 0;
       const footerH = footer && getComputedStyle(footer).display !== 'none' ? footer.getBoundingClientRect().height : 0;
-      const padTopBottom = 16 + 16; // ca. container topp/bunn padding totalt
-      const cardExtras = (legend && getComputedStyle(legend).display !== 'none' ? legend.getBoundingClientRect().height + 8 : 0)
-                       + (stats && getComputedStyle(stats).display !== 'none' ? stats.getBoundingClientRect().height + 8 : 0);
+      const padTopBottom = 16 + 16;
+      const cardExtras = (legend && getComputedStyle(legend).display !== 'none' ? legend.getBoundingClientRect().height + 6 : 0)
+                       + (stats && getComputedStyle(stats).display !== 'none' ? stats.getBoundingClientRect().height + 6 : 0);
 
-      // Litt luft: 8px
       const available = vh - headerH - footerH - padTopBottom - cardExtras - 8;
-      const minH = 240;
+      const minH = 260;
       chartWrap.style.height = Math.max(minH, available) + 'px';
     }
 
@@ -604,7 +695,14 @@
 
     function parseSehavnivaXml(doc) {
       const points = [];
-      const meta = { name: doc.querySelector('location')?.getAttribute('name') || '', code: doc.querySelector('location')?.getAttribute('code') || '', ref: doc.querySelector('reflevelcode')?.textContent?.trim() || '' };
+      const loc = doc.querySelector('location');
+      const meta = {
+        name: loc?.getAttribute('name') || '',
+        code: loc?.getAttribute('code') || '',
+        ref: doc.querySelector('reflevelcode')?.textContent?.trim() || '',
+        lat: parseFloat(loc?.getAttribute('latitude') || '') || 60.3913,
+        lon: parseFloat(loc?.getAttribute('longitude') || '') || 5.3221
+      };
       const dataBlocks = Array.from(doc.querySelectorAll('locationdata > data'));
       for (const dataEl of dataBlocks) {
         const unit = (dataEl.getAttribute('unit') || '').toLowerCase();
