@@ -1,54 +1,46 @@
-<!DOCTYPE html>
-<html lang="nb">
+<!DOCTYPE html><html lang="nb">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Tidevann – Bergen (statisk)</title>
-
-  <!-- GitHub Project Pages under /Tidevanns/ -->
-  <base href="/Tidevanns/">
-
-  <meta name="description" content="Statisk tidevannsgraf for Bergen med lokal Tidevann.xml, pan/zoom-kontroller og hover-tooltip." />
-  <link rel="canonical" href="https://skyrre.github.io/Tidevanns/" />
-
-  <style>
+  <title>Tidevann – Bergen (statisk)</title>  <base href="/Tidevanns/">
+  <meta name="description" content="Statisk tidevannsgraf for Bergen med lokal Tidevann.xml, pan/hover og klassisk mørkt tema." />
+  <link rel="canonical" href="https://skyrre.github.io/Tidevanns/" />  <style>
     :root {
-      color-scheme: light dark;
-      --bg: #071216;
-      --fg: #eaf4f7;
-      --muted: #9fb2be;
-      --accent: #36a3e0;
-      --grid: #20343f;
-      --card: #0b1920;
-      --border: #16303b;
-      --good: #2bb673;
-      --bad: #e35d5b;
+      /* Klassisk mørkt tema (inspirert av GitHub Dark) */
+      --bg: #0d1117;
+      --fg: #c9d1d9;
+      --muted: #8b949e;
+      --accent: #58a6ff;
+      --grid: #1f242d;
+      --card: #0f141a;
+      --border: #30363d;
 
-      /* Maritime tema */
-      --sea-top: #0a5ea8;     /* dyp blå */
-      --sea-bottom: #36b1e0;  /* lysere blå */
-      --land-top: #0f3a2b;    /* mørk sjøgrønn */
-      --land-bottom: #1f6a4f; /* lysere grønn */
-      --tooltip-bg: rgba(8, 14, 18, 0.92);
-      --tooltip-border: rgba(255,255,255,0.1);
+      /* Maritime farger (mørkere vann, lysest øverst) */
+      --sea-top: #3b8fc7;     /* lysere blå i toppen */
+      --sea-bottom: #0b2f49;  /* mørkere blå nederst */
+      --land-top: #1a3a2f;    /* diskret grønnlig over kurven */
+      --land-bottom: #0f2720;
+
+      --tooltip-bg: rgba(13, 17, 23, 0.97);
+      --tooltip-border: rgba(255,255,255,0.08);
       --shadow: 0 6px 24px rgba(0,0,0,0.35);
     }
     @media (prefers-color-scheme: light) {
       :root {
-        --bg: #f4fafc;
-        --fg: #0f1920;
-        --muted: #53636c;
-        --accent: #0c71c3;
-        --grid: #d6e7ef;
+        --bg: #f6f8fa;
+        --fg: #0f1720;
+        --muted: #57606a;
+        --accent: #0969da;
+        --grid: #d0d7de;
         --card: #ffffff;
-        --border: #d3e1ea;
+        --border: #d0d7de;
 
-        --sea-top: #0c75c5;
-        --sea-bottom: #60c6f0;
-        --land-top: #2e6e58;
-        --land-bottom: #64b194;
+        --sea-top: #57a8dc;
+        --sea-bottom: #175a89;
+        --land-top: #2a5a49;
+        --land-bottom: #163e33;
 
-        --tooltip-bg: rgba(255,255,255,0.96);
+        --tooltip-bg: rgba(255,255,255,0.98);
         --tooltip-border: rgba(0,0,0,0.08);
         --shadow: 0 6px 24px rgba(0,0,0,0.15);
       }
@@ -65,27 +57,33 @@
     h1 { font-size: 1.6rem; margin: 0 0 6px; }
     .sub { color: var(--muted); font-size: 0.95rem; margin-bottom: 14px; }
 
-    .controls {
-      display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 10px 0 16px;
-    }
+    .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 10px 0 16px; }
     .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
     .spacer { flex: 1; }
 
     button.btn {
-      appearance: none; border: 1px solid var(--border); background: var(--card);
-      color: var(--fg); padding: 8px 12px; border-radius: 10px; cursor: pointer; font-weight: 600;
+      appearance: none;
+      border: 1px solid var(--border);
+      background: linear-gradient(180deg, #151b23, #0f141a);
+      color: var(--fg);
+      padding: 8px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 600;
       box-shadow: var(--shadow);
     }
+    button.btn:hover { border-color: #3a434d; }
     button.btn[aria-pressed="true"] {
       border-color: var(--accent);
-      outline: 2px solid color-mix(in oklab, var(--accent) 30%, transparent);
+      outline: 2px solid color-mix(in oklab, var(--accent) 24%, transparent);
     }
-    button.icon {
-      width: 40px; height: 40px; display: inline-grid; place-items: center; font-size: 18px; padding: 0;
-    }
+    button.icon { width: 40px; height: 40px; display: inline-grid; place-items: center; font-size: 18px; padding: 0; }
 
     .card {
-      background: var(--card); border: 1px solid var(--border); border-radius: 14px; overflow: clip;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: clip;
       box-shadow: var(--shadow);
     }
     .card h2 { font-size: 1rem; margin: 0; padding: 12px 14px; border-bottom: 1px solid var(--border); }
@@ -96,7 +94,6 @@
 
     .legend { display: flex; gap: 14px; align-items: center; color: var(--muted); font-size: 0.9rem; margin-top: 8px; }
     .legend .swatch { width: 18px; height: 4px; border-radius: 3px; background: var(--accent); display: inline-block; vertical-align: middle; margin-right: 6px; }
-    .legend .chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border: 1px solid var(--border); border-radius: 999px; background: var(--card); }
 
     .muted { color: var(--muted); }
     .stat-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 8px; }
@@ -104,7 +101,6 @@
     .stat .label { color: var(--muted); font-size: 0.85rem; }
     .stat .val { font-weight: 700; font-size: 1.1rem; }
 
-    /* Tooltip */
     .tooltip {
       position: absolute; pointer-events: none; transform: translate(-50%, -100%);
       background: var(--tooltip-bg); color: var(--fg); border: 1px solid var(--tooltip-border);
@@ -114,36 +110,31 @@
     .tooltip .em { font-weight: 700; }
 
     footer { padding: 26px 16px 40px; color: var(--muted); text-align: center; }
-  </style>
-</head>
+  </style></head>
 <body>
   <header>
     <h1 id="title">Tidevann – (statisk)</h1>
-    <div class="sub" id="subtitle">Leser data fra Tidevann.xml (ingen API-kall). Bla med piltaster/knapper eller dra i grafen.</div>
+    <div class="sub" id="subtitle">Leser data fra Tidevann.xml (ingen API-kall). Bla med piltaster/knapper eller dra i grafen.</div><div class="controls">
+  <div class="row" role="group" aria-label="Tidsvalg">
+    <button class="btn" data-range="1d" aria-pressed="true">I dag (24t)</button>
+    <button class="btn" data-range="3d">Neste 3 dager</button>
+    <button class="btn" data-range="7d">Uke</button>
+  </div>
 
-    <div class="controls">
-      <div class="row" role="group" aria-label="Tidsvalg">
-        <button class="btn" data-range="1d" aria-pressed="true">I dag (24t)</button>
-        <button class="btn" data-range="3d">Neste 3 dager</button>
-        <button class="btn" data-range="7d">Uke</button>
-      </div>
+  <span class="spacer"></span>
 
-      <span class="spacer"></span>
+  <div class="row" role="group" aria-label="Bla i tid">
+    <button class="btn icon" id="pan-left" title="Bla venstre (←)">←</button>
+    <button class="btn icon" id="pan-right" title="Bla høyre (→)">→</button>
+  </div>
 
-      <div class="row" role="group" aria-label="Bla i tid">
-        <button class="btn icon" id="pan-left" title="Bla venstre (←)">←</button>
-        <button class="btn icon" id="pan-right" title="Bla høyre (→)">→</button>
-      </div>
+  <span class="spacer"></span>
 
-      <span class="spacer"></span>
-
-      <div class="row small">
-        <span id="dataset-meta" class="muted">Laster …</span>
-      </div>
-    </div>
-  </header>
-
-  <main class="info">
+  <div class="row small">
+    <span id="dataset-meta" class="muted">Laster …</span>
+  </div>
+</div>
+  </header>  <main class="info">
     <section class="card" style="grid-column: 1 / -1;">
       <h2>Graf</h2>
       <div class="pad">
@@ -152,9 +143,7 @@
           <div id="tooltip" class="tooltip" style="display:none"></div>
         </div>
         <div class="legend">
-          <span class="chip"><span class="swatch"></span>Vannstand (m)</span>
-          <span class="chip">Blått = under kurven (vann)</span>
-          <span class="chip">Grønt = over kurven (land)</span>
+          <span><span class="swatch"></span>Vannstand (m)</span>
         </div>
         <div class="stat-grid">
           <div class="stat"><div class="label">Minimum (visning)</div><div class="val" id="stat-min">–</div></div>
@@ -164,18 +153,11 @@
         <div class="small muted" style="margin-top:8px" id="stat-info">–</div>
       </div>
     </section>
-  </main>
-
-  <footer>
+  </main>  <footer>
     Tid vises i din lokale tidssone (<span id="tz"></span>). Dra for å bla. Bruk piltaster ← → for å flytte vinduet.
-  </footer>
-
-  <script>
+  </footer>  <script>
     // Filplassering
-    const XML_URLS = [
-      'Tidevann.xml',
-      'https://skyrre.github.io/Tidevanns/Tidevann.xml'
-    ];
+    const XML_URLS = ['Tidevann.xml', 'https://skyrre.github.io/Tidevanns/Tidevann.xml'];
 
     // Tilstand
     let allPoints = [];    // {t: Date, v: number, src: 'obs'|'pred'|'H'|'L'|string}
@@ -184,7 +166,6 @@
     let viewLenMs = 24 * 3600e3;          // standard 24t
     let currentRangeKey = '1d';
 
-    // Elementer
     const $ = (s) => document.querySelector(s);
     const $$ = (s) => Array.from(document.querySelectorAll(s));
 
@@ -230,8 +211,8 @@
         if (!allPoints.length) throw new Error('Fant ingen waterlevel-punkter i XML');
 
         if (parsed.meta.name) {
-          $('#title').textContent = `Tidevann – ${parsed.meta.name} (statisk)`;
-          $('#subtitle').textContent = `Lokal fil: Tidevann.xml (enhet: meter, ref: ${parsed.meta.ref || '—'})`;
+          $$('#title').textContent = `Tidevann – $${parsed.meta.name} (statisk)`;
+          $$('#subtitle').textContent = `Lokal fil: Tidevann.xml (enhet: meter, ref: $${parsed.meta.ref || '—'})`;
         }
 
         // Extent
@@ -242,7 +223,7 @@
         const vMax = Math.max(...vs);
         dataExtent = { tMin, tMax, vMin, vMax };
 
-        $('#dataset-meta').textContent = `Punkter: ${allPoints.length} • Periode: ${fmtDate(tMin)} – ${fmtDate(tMax)}`;
+        $$('#dataset-meta').textContent = `Punkter: $${allPoints.length} • Periode: ${fmtDate(tMin)} – ${fmtDate(tMax)}`;
 
         // Init visningsvindu
         viewLenMs = rangeToMs(currentRangeKey);
@@ -251,7 +232,7 @@
         renderAll();
       } catch (err) {
         console.error(err);
-        $('#dataset-meta').innerHTML = `<span style="color:#e35d5b;font-weight:700">Feil:</span> ${err.message}`;
+        $$('#dataset-meta').innerHTML = `<span style="color:#e35d5b;font-weight:700">Feil:</span> $${err.message}`;
       }
     }
 
@@ -265,7 +246,6 @@
     function placeWindowAroundNow() {
       if (!dataExtent) return;
       const now = new Date();
-      // Start ved "nå" → framover viewLenMs
       let start = now.getTime();
       let end = start + viewLenMs;
 
@@ -304,7 +284,7 @@
       let dragging = false;
       let dragStartX = 0;
       let startFrom = 0, startTo = 0;
-      let hoverX = null, hoverPoint = null;
+      let hoverPoint = null;
 
       const getPlotGeom = () => {
         const dpr = Math.max(1, window.devicePixelRatio || 1);
@@ -327,23 +307,21 @@
 
       function onPointerDown(e) {
         dragging = true;
-        const ptX = e.clientX ?? (e.touches && e.touches[0]?.clientX);
-        dragStartX = ptX;
+        const pt = ('touches' in e && e.touches[0]) ? e.touches[0] : e;
+        dragStartX = pt.clientX;
         startFrom = viewFrom.getTime();
         startTo = viewTo.getTime();
         canvas.setPointerCapture?.(e.pointerId || 1);
       }
       function onPointerMove(e) {
-        const clientX = e.clientX ?? (e.touches && e.touches[0]?.clientX);
-        const clientY = e.clientY ?? (e.touches && e.touches[0]?.clientY);
-        hoverX = clientX;
-        const t = clientToTime(clientX);
+        const pt = ('touches' in e && e.touches[0]) ? e.touches[0] : e;
+        const t = clientToTime(pt.clientX);
         hoverPoint = nearestPointAtTime(t);
-        positionTooltip(clientX, clientY, hoverPoint);
+        positionTooltip(pt.clientX, pt.clientY, hoverPoint);
         if (dragging) {
           const { plotW } = getPlotGeom();
           const span = startTo - startFrom;
-          const dx = clientX - dragStartX;
+          const dx = pt.clientX - dragStartX;
           const dt = -dx / plotW * span;
           let s = startFrom + dt;
           let e2 = startTo + dt;
@@ -363,41 +341,36 @@
         canvas.releasePointerCapture?.(e.pointerId || 1);
       }
       function onLeave() {
-        hoverX = null; hoverPoint = null;
+        hoverPoint = null;
         $('#tooltip').style.display = 'none';
         renderAll();
       }
 
-      // Tooltip-plassering
-      function positionTooltip(clientX, clientY, p) {
-        const tip = $('#tooltip');
-        if (!p) { tip.style.display = 'none'; return; }
-        tip.style.display = 'block';
-        tip.innerHTML = `<span class="em">${fmtNum(p.v)} m</span><br>${fmtDateTime(p.t)}${p.src ? ` • ${srcLabel(p.src)}` : ''}`;
-        // Plassér
-        const rect = wrap.getBoundingClientRect();
-        const x = clientX - rect.left;
-        const y = clientY - rect.top;
-        tip.style.left = `${x}px`;
-        tip.style.top = `${y - 10}px`;
-      }
-
-      // Pointer events (mus/berøring)
       canvas.addEventListener('pointerdown', onPointerDown);
       window.addEventListener('pointermove', onPointerMove);
       window.addEventListener('pointerup', onPointerUp);
       canvas.addEventListener('pointerleave', onLeave);
     }
 
+    function positionTooltip(clientX, clientY, p) {
+      const tip = $('#tooltip');
+      const wrap = $('#chart-wrap');
+      if (!p) { tip.style.display = 'none'; return; }
+      tip.style.display = 'block';
+      tip.innerHTML = `<span class="em">${fmtNum(p.v)} m</span><br>${fmtDateTime(p.t)}${p.src ? ` • ${srcLabel(p.src)}` : ''}`;
+      const rect = wrap.getBoundingClientRect();
+      const x = clientX - rect.left;
+      const y = clientY - rect.top;
+      tip.style.left = `${x}px`;
+      tip.style.top = `${y - 10}px`;
+    }
+
     function nearestPointAtTime(t) {
       if (!allPoints.length) return null;
-      // binærsøk i hele datasettet, men bruk visningsgrense for rimelig nøyaktighet
       const t0 = viewFrom.getTime(), t1 = viewTo.getTime();
-      // Finn første indeks >= t0 og siste <= t1
       let lo = lowerBound(allPoints, t0);
       let hi = upperBound(allPoints, t1);
       if (hi <= lo) { lo = 0; hi = allPoints.length; }
-      // Finn nærmeste i [lo, hi)
       let best = null, bestDt = Infinity;
       for (let i = lo; i < hi; i++) {
         const p = allPoints[i];
@@ -406,16 +379,8 @@
       }
       return best;
     }
-    function lowerBound(arr, t) {
-      let l = 0, r = arr.length;
-      while (l < r) { const m = (l + r) >> 1; (arr[m].t.getTime() < t ? l = m + 1 : r = m); }
-      return l;
-    }
-    function upperBound(arr, t) {
-      let l = 0, r = arr.length;
-      while (l < r) { const m = (l + r) >> 1; (arr[m].t.getTime() <= t ? l = m + 1 : r = m); }
-      return l;
-    }
+    function lowerBound(arr, t) { let l = 0, r = arr.length; while (l < r) { const m = (l + r) >> 1; (arr[m].t.getTime() < t ? l = m + 1 : r = m); } return l; }
+    function upperBound(arr, t) { let l = 0, r = arr.length; while (l < r) { const m = (l + r) >> 1; (arr[m].t.getTime() <= t ? l = m + 1 : r = m); } return l; }
 
     // Rendering
     function renderAll(hoverPoint = null) {
@@ -426,7 +391,6 @@
     function filteredInView() {
       if (!dataExtent) return [];
       const from = viewFrom, to = viewTo;
-      // vi kan anta sortert array
       const lo = lowerBound(allPoints, from.getTime());
       const hi = upperBound(allPoints, to.getTime());
       return allPoints.slice(Math.max(0, lo - 1), Math.min(allPoints.length, hi + 1));
@@ -448,7 +412,7 @@
       $('#stat-min').textContent = `${fmtNum(vMin)} m`;
       $('#stat-max').textContent = `${fmtNum(vMax)} m`;
       $('#stat-avg').textContent = `${fmtNum(avg)} m`;
-      $('#stat-info').textContent = `Viser ${fmtDateTime(viewFrom)} → ${fmtDateTime(viewTo)} • Punkter: ${pts.length}`;
+      $$('#stat-info').textContent = `Viser $${fmtDateTime(viewFrom)} → ${fmtDateTime(viewTo)} • Punkter: ${pts.length}`;
     }
 
     function renderChart(hoverPoint = null) {
@@ -478,10 +442,12 @@
         return;
       }
 
-      // Verdiskala
+      // Verdiskala + vertikal buffer (min 0.2 m eller 10 %)
       let vMin = Math.min(...pts.map(p => p.v));
       let vMax = Math.max(...pts.map(p => p.v));
-      if (vMax === vMin) { vMax += 0.5; vMin -= 0.5; }
+      const vSpan = Math.max(1e-6, vMax - vMin);
+      const padY = Math.max(0.2, vSpan * 0.10);
+      vMin -= padY; vMax += padY;
 
       // Tidskala
       const tMin = viewFrom.getTime();
@@ -490,14 +456,14 @@
       const xOf = (t) => pad.L + (t - tMin) / (tMax - tMin) * plotW;
       const yOf = (v) => pad.T + plotH - (v - vMin) / (vMax - vMin) * plotH;
 
-      // Bakgrunn: grønn (land) over alt
+      // Bakgrunn: grønnlig (land) over alt
       const landGrad = ctx.createLinearGradient(0, pad.T, 0, pad.T + plotH);
       landGrad.addColorStop(0, getCSS('--land-top'));
       landGrad.addColorStop(1, getCSS('--land-bottom'));
       ctx.fillStyle = landGrad;
       ctx.fillRect(pad.L, pad.T, plotW, plotH);
 
-      // Lag kurvesti
+      // Kurvesti
       const path = new Path2D();
       pts.forEach((p, i) => {
         const x = xOf(p.t.getTime());
@@ -506,10 +472,9 @@
         else path.lineTo(x, y);
       });
 
-      // Klipp under kurven og fyll med blå "vann"
+      // Fyll under kurven med mørkere "vann" (lysere øverst → mørkere nederst)
       ctx.save();
       const under = new Path2D(path);
-      // Lukk ned til bunnen
       under.lineTo(xOf(pts[pts.length - 1].t.getTime()), pad.T + plotH);
       under.lineTo(xOf(pts[0].t.getTime()), pad.T + plotH);
       under.closePath();
@@ -569,9 +534,11 @@
         ctx.setLineDash([]);
       }
 
-      // Kurvelinje
+      // Kurvelinje (mykere)
       ctx.strokeStyle = getCSS('--accent');
       ctx.lineWidth = 2;
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
       ctx.beginPath();
       pts.forEach((p, i) => {
         const x = xOf(p.t.getTime());
@@ -584,14 +551,13 @@
       if (hoverPoint) {
         const xh = xOf(hoverPoint.t.getTime());
         const yh = yOf(hoverPoint.v);
-        // vertikal linje
         ctx.strokeStyle = 'rgba(255,255,255,0.4)';
         ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.moveTo(xh + 0.5, pad.T);
         ctx.lineTo(xh + 0.5, pad.T + plotH);
         ctx.stroke();
-        // punkt
+
         ctx.fillStyle = getCSS('--accent');
         ctx.beginPath();
         ctx.arc(xh, yh, 3, 0, Math.PI * 2);
@@ -602,14 +568,8 @@
     // Hjelpere
     function fmtNum(n) { return (Math.round(n * 100) / 100).toLocaleString('nb-NO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
     function fmtDate(d) { return d.toLocaleDateString('nb-NO'); }
-    function fmtDateTime(d) {
-      return d.toLocaleString('nb-NO', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(',', '');
-    }
-    function fmtTickDate(d, tMin, tMax) {
-      const spanDays = (tMax - tMin) / 86400000;
-      if (spanDays <= 2) return d.toLocaleTimeString('nb-NO', { hour: '2-digit' });
-      return d.toLocaleDateString('nb-NO', { day: '2-digit', month: '2-digit' });
-    }
+    function fmtDateTime(d) { return d.toLocaleString('nb-NO', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(',', ''); }
+    function fmtTickDate(d, tMin, tMax) { const spanDays = (tMax - tMin) / 86400000; return spanDays <= 2 ? d.toLocaleTimeString('nb-NO', { hour: '2-digit' }) : d.toLocaleDateString('nb-NO', { day: '2-digit', month: '2-digit' }); }
     function getCSS(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
     function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
     function niceTicks(min, max, count=5) {
@@ -646,13 +606,7 @@
       if (stepMs >= 24*3600e3) return new Date(d.getFullYear(), d.getMonth(), d.getDate());
       return new Date(Math.floor(t / stepMs) * stepMs);
     }
-    function srcLabel(s) {
-      if (s === 'obs') return 'Observasjon';
-      if (s === 'pred') return 'Prognose';
-      if (s === 'H') return 'Høyvann';
-      if (s === 'L') return 'Lavvann';
-      return s;
-    }
+    function srcLabel(s) { if (s === 'obs') return 'Observasjon'; if (s === 'pred') return 'Prognose'; if (s === 'H') return 'Høyvann'; if (s === 'L') return 'Lavvann'; return s; }
 
     // Hent første fungerende URL
     async function fetchFirstWorking(urls) {
@@ -663,24 +617,15 @@
           const res = await fetch(u, { cache: 'no-cache', mode: 'same-origin' });
           if (!res.ok) { lastErr = new Error(`HTTP ${res.status} for ${u}`); continue; }
           const txt = await res.text();
-          if (!/\<(tide|waterlevel)\b/i.test(txt.slice(0, 1000))) {
-            lastErr = new Error(`Uventet innhold for ${u}`); continue;
-          }
+          if (!/\<(tide|waterlevel)\b/i.test(txt.slice(0, 1000))) { lastErr = new Error(`Uventet innhold for ${u}`); continue; }
           return { text: txt, url: u };
         } catch (e) { lastErr = e; }
       }
       throw lastErr || new Error('Fant ingen gyldig Tidevann.xml');
     }
-    function addCacheBuster(u) {
-      try { const url = new URL(u, location.href); url.searchParams.set('v', String(Date.now())); return url.toString(); }
-      catch { return u; }
-    }
-    function sanitizeXmlText(txt) {
-      let s = txt.replace(/^\uFEFF/, '');
-      const i = s.indexOf('<'); if (i > 0) s = s.slice(i);
-      const j = s.lastIndexOf('>'); if (j >= 0) s = s.slice(0, j + 1);
-      return s;
-    }
+    function addCacheBuster(u) { try { const url = new URL(u, location.href); url.searchParams.set('v', String(Date.now())); return url.toString(); } catch { return u; } }
+    function sanitizeXmlText(txt) { let s = txt.replace(/^\uFEFF/, ''); const i = s.indexOf('<'); if (i > 0) s = s.slice(i); const j = s.lastIndexOf('>'); if (j >= 0) s = s.slice(0, j + 1); return s; }
+
     // Parser for <data type="observation" unit="cm"><waterlevel value=".." time=".."/>
     function parseSehavnivaXml(doc) {
       const points = [];
@@ -707,7 +652,6 @@
         }
       }
       points.sort((a, b) => a.t - b.t || a.v - b.v);
-      // Dedup på minutt for kontinuerlig serie
       const dedup = [];
       const seen = new Set();
       for (const p of points) {
@@ -729,6 +673,5 @@
       }
       return '';
     }
-  </script>
-</body>
+  </script></body>
 </html>
