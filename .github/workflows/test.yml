@@ -1,7 +1,8 @@
 name: Test Actions
-on: [workflow_dispatch]
+on:
+  workflow_dispatch:
 jobs:
-hello:
-runs-on: ubuntu-latest
+  hello:
+    runs-on: ubuntu-latest
 steps:
-- run: echo It works!
+      - run: echo "It works!"
